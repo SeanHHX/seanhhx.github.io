@@ -1,3 +1,5 @@
 db.json
 package.json
 package-lock.json
+public/
+.deploy_git/
