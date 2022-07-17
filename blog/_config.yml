@@ -105,7 +105,7 @@ theme: hexo-theme-next
 deploy:
   type: git
   repo: git@github.com:SeanHHX/seanhhx.github.io.git
-  branch: master-blog-deploy
+  branch: master
 
 # 增加搜索功能
 search:
