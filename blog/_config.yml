@@ -3,8 +3,8 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: SeanHHX 的点滴记录
-subtitle: ''
+title: SeanHHX 点点滴滴
+subtitle: 滴水穿石
 description: ''
 keywords:
 author: SeanHHX
@@ -106,3 +106,10 @@ deploy:
   type: git
   repo: git@github.com:SeanHHX/seanhhx.github.io.git
   branch: master
+
+# 增加搜索功能
+search:
+  path: search.xml
+  field: post
+  format: html
+  limit: 10000
