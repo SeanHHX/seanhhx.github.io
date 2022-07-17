@@ -1,0 +1,3 @@
+[submodule "blog/blog/themes/hexo-theme-next"]
+	path = blog/themes/hexo-theme-next
+	url = git@github.com:iissnan/hexo-theme-next.git
