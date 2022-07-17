@@ -16,7 +16,7 @@ menu:
   sitemap: 站点地图
   commonweal: 公益 404
 sidebar:
-  overview: 站点概览
+  overview: 所有文章
   toc: 文章目录
 post:
   posted: 发表于
@@ -49,11 +49,11 @@ counter:
     one: 目前共计 1 个分类
     other: "目前共计 %d 个分类"
   archive_posts:
-    zero: 暂无日志。
-    one: 目前共计 1 篇日志。
-    other: "目前共计 %d 篇日志。"
+    zero: 暂无文章。
+    one: 目前共计 1 篇文章。
+    other: "目前共计 %d 篇文章。"
 state:
-  posts: 日志
+  posts: 文章
   tags: 标签
   categories: 分类
 search:
