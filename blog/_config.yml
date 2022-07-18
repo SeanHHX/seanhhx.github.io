@@ -4,7 +4,7 @@
 
 # Site
 title: SeanHHX 点点滴滴
-subtitle: 滴水穿石
+subtitle: 一日一钱，千日千钱，绳锯木断，水滴石穿
 description: ''
 keywords:
 author: SeanHHX
@@ -40,7 +40,7 @@ external_link:
   exclude: ''
 filename_case: 0
 render_drafts: false
-post_asset_folder: false
+post_asset_folder: true
 relative_link: false
 future: true
 highlight:
