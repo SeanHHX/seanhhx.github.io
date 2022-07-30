@@ -1,7 +1,16 @@
 ---
 title: Git 基本操作
+top: false
+cover: false
+toc: true
+mathjax: true
+date: 2022-07-30 21:24:30
+password:
+summary:
 tags:
+categories:
 ---
+
 Git 在项目中发挥着重要作用，主要体现在团队协作开发和版本管理上，是开发者应该熟练掌握的技能。本文目的就是帮助初学者快速入门 Git 基本操作，团队协作开发上更流畅。
 
 ### 基本概念
