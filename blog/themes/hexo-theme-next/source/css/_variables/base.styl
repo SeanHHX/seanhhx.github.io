@@ -69,7 +69,8 @@ get_font_family(config) {
 }
 
 // Font families.
-$font-family-chinese      = "PingFang SC", "Microsoft YaHei";
+// $font-family-chinese      = "PingFang SC", "Microsoft YaHei";
+$font-family-chinese      = "Noto Serif SC";
 
 $font-family-base         = $font-family-chinese, sans-serif;
 $font-family-base         = get_font_family('global'), $font-family-chinese, sans-serif if get_font_family('global');
@@ -88,14 +89,24 @@ $font-family-monospace    = get_font_family('codes'), consolas, Menlo, monospace
 
 
 // Font size
-$font-size-base           = (hexo-config('font.enable') and hexo-config('font.global.size') is a 'unit') ? unit(hexo-config('font.global.size'), em) : 1em;
-$font-size-smallest       = .75em;
-$font-size-smaller        = .8125em;
-$font-size-small          = .875em;
-$font-size-medium         = 1em;
-$font-size-large          = 1.125em;
-$font-size-larger         = 1.25em;
-$font-size-largest        = 1.5em;
+//$font-size-base           = (hexo-config('font.enable') and //hexo-config('font.global.size') is a 'unit') ? unit(hexo-config('font.global.size'), //em) : 1em;
+//$font-size-smallest       = .75em;
+//$font-size-smaller        = .8125em;
+//$font-size-small          = .875em;
+//$font-size-medium         = 1em;
+//$font-size-large          = 1.125em;
+//$font-size-larger         = 1.25em;
+//$font-size-largest        = 1.5em;
+
+// Custom: Font size(1em = 16px -> 14.4px 0.9)
+$font-size-base           = (hexo-config('font.enable') and hexo-config('font.global.size') is a 'unit') ? unit(hexo-config('font.global.size'), em) : 0.9em;
+$font-size-smallest       = .675em;
+$font-size-smaller        = .73125em;
+$font-size-small          = .7875em;
+$font-size-medium         = .9em;
+$font-size-large          = 1.0125em;
+$font-size-larger         = 1.125em;
+$font-size-largest        = 1.35em;
 
 
 // Headings font size
@@ -104,6 +115,10 @@ $font-size-headings-base  = (hexo-config('font.enable') and hexo-config('font.he
 
 
 // Global line height
+//$line-height-base         = 2;
+//$line-height-code-block   = 1.6; // Can't be less than 1.3;
+
+// Custom: Global line height
 $line-height-base         = 2;
 $line-height-code-block   = 1.6; // Can't be less than 1.3;
 
