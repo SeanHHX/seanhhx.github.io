@@ -8,7 +8,7 @@ Hexo 发布文章四步走：创建 post，本地运行预览，生成静态页�
 ### 创建新的 post
 
 ``` bash
-$ hexo new [post] "My New Post Title"
+hexo new [post] "My New Post Title"
 ```
 
 详见官网： [Writing](https://hexo.io/docs/writing.html)
@@ -16,7 +16,7 @@ $ hexo new [post] "My New Post Title"
 ### 本地服务器运行预览
 
 ``` bash
-$ hexo server
+hexo server
 ```
 
 详见官网： [Server](https://hexo.io/docs/server.html)
@@ -24,7 +24,7 @@ $ hexo server
 ### 生成静态文件
 
 ``` bash
-$ hexo generate
+hexo generate
 ```
 
 详见官网： [Generating](https://hexo.io/docs/generating.html)
@@ -32,14 +32,14 @@ $ hexo generate
 ### 部署到网站
 
 ``` bash
-$ hexo deploy
+hexo deploy
 ```
 
 生成后自动部署（以下命令是等价的）
 
 ``` bash
-$ hexo g -d
-$ hexo d -g
+hexo g -d
+hexo d -g
 ```
 
 详见官网： [Deployment](https://hexo.io/docs/one-command-deployment.html)
