@@ -1,422 +1,58 @@
-<!DOCTYPE html>
-<html lang="zh-cn">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>高通骁龙 CPU 绑核操作 - SeanHHX 点点滴滴</title>
-  <meta name="renderer" content="webkit" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
-
-<meta http-equiv="Cache-Control" content="no-transform" />
-<meta http-equiv="Cache-Control" content="no-siteapp" />
-
-<meta name="theme-color" content="#f8f5ec" />
-<meta name="msapplication-navbutton-color" content="#f8f5ec">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
-
-
-<meta name="author" content="SeanHHX" /><meta name="description" content="一、简介 高通骁龙采用 1&#43;3&#43;4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进" /><meta name="keywords" content="Hugo, theme, even" />
-
-
-
-
-
-
-<meta name="generator" content="Hugo 0.101.0 with theme even" />
-
-
-<link rel="canonical" href="https://seanhhx.github.io/post/%E9%AB%98%E9%80%9A%E9%AA%81%E9%BE%99-cpu-%E7%BB%91%E6%A0%B8%E6%93%8D%E4%BD%9C/" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/manifest.json">
-<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
-
-
-
-<link href="/sass/main.min.f92fd13721ddf72129410fd8250e73152cc6f2438082b6c0208dc24ee7c13fc4.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
-
-
-<meta property="og:title" content="高通骁龙 CPU 绑核操作" />
-<meta property="og:description" content="一、简介 高通骁龙采用 1&#43;3&#43;4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://seanhhx.github.io/post/%E9%AB%98%E9%80%9A%E9%AA%81%E9%BE%99-cpu-%E7%BB%91%E6%A0%B8%E6%93%8D%E4%BD%9C/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2022-08-25T23:31:55+08:00" />
-<meta property="article:modified_time" content="2022-08-25T23:31:55+08:00" />
-
-<meta itemprop="name" content="高通骁龙 CPU 绑核操作">
-<meta itemprop="description" content="一、简介 高通骁龙采用 1&#43;3&#43;4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进"><meta itemprop="datePublished" content="2022-08-25T23:31:55+08:00" />
-<meta itemprop="dateModified" content="2022-08-25T23:31:55+08:00" />
-<meta itemprop="wordCount" content="608">
-<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="高通骁龙 CPU 绑核操作"/>
-<meta name="twitter:description" content="一、简介 高通骁龙采用 1&#43;3&#43;4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进"/>
-
-<!--[if lte IE 9]>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
-<![endif]-->
-
-<!--[if lt IE 9]>
-  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
-<![endif]-->
-
-</head>
-<body>
-  <div id="mobile-navbar" class="mobile-navbar">
-  <div class="mobile-header-logo">
-    <a href="/" class="logo">Even</a>
-  </div>
-  <div class="mobile-navbar-icon">
-    <span></span>
-    <span></span>
-    <span></span>
-  </div>
-</div>
-<nav id="mobile-menu" class="mobile-menu slideout-menu">
-  <ul class="mobile-menu-list">
-    <a href="/">
-        <li class="mobile-menu-item">Home</li>
-      </a><a href="/post/">
-        <li class="mobile-menu-item">Archives</li>
-      </a><a href="/tags/">
-        <li class="mobile-menu-item">Tags</li>
-      </a><a href="/categories/">
-        <li class="mobile-menu-item">Categories</li>
-      </a>
-  </ul>
-
-  
-
-
-</nav>
-
-  <div class="container" id="mobile-panel">
-    <header id="header" class="header">
-        <div class="logo-wrapper">
-  <a href="/" class="logo">Even</a>
-</div>
-
-
-
-
-
-<nav class="site-navbar">
-  <ul id="menu" class="menu">
-    <li class="menu-item">
-        <a class="menu-item-link" href="/">Home</a>
-      </li><li class="menu-item">
-        <a class="menu-item-link" href="/post/">Archives</a>
-      </li><li class="menu-item">
-        <a class="menu-item-link" href="/tags/">Tags</a>
-      </li><li class="menu-item">
-        <a class="menu-item-link" href="/categories/">Categories</a>
-      </li>
-  </ul>
-</nav>
-
-    </header>
-
-    <main id="main" class="main">
-      <div class="content-wrapper">
-        <div id="content" class="content">
-          <article class="post">
-    
-    <header class="post-header">
-      <h1 class="post-title">高通骁龙 CPU 绑核操作</h1>
-
-      <div class="post-meta">
-        <span class="post-time"> 2022-08-25 </span>
-        
-        
-      </div>
-    </header>
-
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">文章目录</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-  <ul>
-    <li>
-      <ul>
-        <li><a href="#一简介">一、简介</a></li>
-        <li><a href="#二cpu-掩码">二、CPU 掩码</a></li>
-        <li><a href="#三根据掩码绑核">三、根据掩码绑核</a>
-          <ul>
-            <li><a href="#一-方法一taskset-命令">(一) 方法一：taskset 命令</a></li>
-            <li><a href="#二-方法二修改-devcpusettop-appcpus">(二) 方法二：修改 <code>/dev/cpuset/top-app/cpus</code></a></li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-  </ul>
-</nav>
-  </div>
-</div>
-    <div class="post-content">
-      <h2 id="一简介">一、简介</h2>
-<p>高通骁龙采用 1+3+4 的设计，1 个 <code>Prime</code> 超大核、3 个 <code>Kryo Gold</code> 核心和 4 个 <code>Kryo Silver</code> 核心，其中 0-3 是 <code>Silver</code> 核心，4-6 是 <code>Gold</code> 核心，7 是 <code>Prime</code> 超大核。</p>
-<h2 id="二cpu-掩码">二、CPU 掩码</h2>
-<p>2 位 16 进制，转 2 进制分别对应 8 个核心，对应位为 1 即绑定到该核</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th style="text-align:left">CPU 序号和掩码对应关系</th>
-<th>备注</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>CPU 序号</td>
-<td style="text-align:left">7  6  5  4  3  2  1  0</td>
-<td></td>
-</tr>
-<tr>
-<td>默认掩码</td>
-<td style="text-align:left">1  1  1  1  1  1  1  1</td>
-<td></td>
-</tr>
-<tr>
-<td>绑定超大核</td>
-<td style="text-align:left">1  0  0  0  0  0  0  0</td>
-<td>可能无法绑定</td>
-</tr>
-<tr>
-<td>绑定大核</td>
-<td style="text-align:left">0  1  1  1  0  0  0  0</td>
-<td>掩码范围：0x10 - 0x70，可视具体情况绑定到指定核</td>
-</tr>
-<tr>
-<td>绑定小核</td>
-<td style="text-align:left">0  0  0  0  1  1  1  1</td>
-<td>掩码范围：0x01 - 0x0f，可视具体情况绑定到指定核</td>
-</tr>
-</tbody>
-</table>
-<h2 id="三根据掩码绑核">三、根据掩码绑核</h2>
-<p>以下两种方式都需要 root 权限</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb root
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="一-方法一taskset-命令">(一) 方法一：taskset 命令</h3>
-<h4 id="1进程或线程绑核命令">1.进程或线程绑核命令</h4>
-<ul>
-<li>
-<p>增加<code>-a</code>代表进程下的所有线程都设置</p>
-</li>
-<li>
-<p>cpu 掩码对应多个核心时，设置完成后的掩码可能是这几个核心的任意组合，并且会观察到这个值会不断变化</p>
-</li>
-<li>
-<p>新起线程如果值不对需要重设</p>
-</li>
-<li>
-<p>如偶现执行失败可重试</p>
-</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell taskset -p &lt;cpu_mask&gt; &lt;pid/tid&gt;
-</span></span><span class="line"><span class="cl">adb shell taskset -ap &lt;cpu_mask&gt; &lt;pid/tid&gt;
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><img src="https://raw.githubusercontent.com/SeanHHX/ShareAssets/res/cpu/0.png" alt="cpu_0"></p>
-<h4 id="2查询进程或线程绑核情况">2.查询进程或线程绑核情况</h4>
-<ul>
-<li>增加<code>-a</code>不管传进程ID还是所属线程ID，都会出来进程所有线程的绑定信息</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell taskset -p &lt;pid/tid&gt;
-</span></span><span class="line"><span class="cl">adb shell taskset -ap &lt;pid/tid&gt;
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><img src="https://raw.githubusercontent.com/SeanHHX/ShareAssets/res/cpu/1.png" alt="cpu_1"></p>
-<p><img src="https://raw.githubusercontent.com/SeanHHX/ShareAssets/res/cpu/2.png" alt="cpu_2"></p>
-<h4 id="3常用修改命令">3.常用修改命令</h4>
-<ul>
-<li>绑定超大核</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell taskset -p <span class="m">80</span> &lt;pid&gt;
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ul>
-<li>绑定大核（绑三核，根据cpu mask 可指定具体核）</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell taskset -p <span class="m">70</span> &lt;pid&gt;
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ul>
-<li>绑定小核（绑四核，根据cpu mask 可指定具体核）</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell taskset -p f &lt;pid&gt;
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ul>
-<li>恢复默认</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell taskset -p ff &lt;pid&gt;
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="二-方法二修改-devcpusettop-appcpus">(二) 方法二：修改 <code>/dev/cpuset/top-app/cpus</code></h3>
-<p><code>/dev/cpuset/top-app/cpus</code> 默认值是 0-7，修改该值会让所有进程都只能使用指定核心，修改方法如下：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /dev/cpuset/top-app
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> 4-6 &gt; cpus
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>修改完成后使用 taskset 可查看是否符合预期</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell taskset -p &lt;pid/tid&gt;
-</span></span></code></pre></td></tr></table>
-</div>
-</div>
-    </div>
-
-    <div class="post-copyright">
-  <p class="copyright-item">
-    <span class="item-title">文章作者</span>
-    <span class="item-content">SeanHHX</span>
-  </p>
-  <p class="copyright-item">
-    <span class="item-title">上次更新</span>
-    <span class="item-content">
-        2022-08-25
-        
-    </span>
-  </p>
-  
-  
-</div>
-<footer class="post-footer">
-      
-      <nav class="post-nav">
-        
-        <a class="next" href="/post/git-%E5%9F%BA%E7%A1%80%E6%93%8D%E4%BD%9C/">
-            <span class="next-text nav-default">Git 基础操作</span>
-            <span class="next-text nav-mobile">下一篇</span>
-            <i class="iconfont icon-right"></i>
-          </a>
-      </nav>
-    </footer>
-  </article>
-        </div>
-        
-
-  
-
-  
-
-      </div>
-    </main>
-
-    <footer id="footer" class="footer">
-      <div class="social-links">
-      <a href="mailto:your@email.com" class="iconfont icon-email" title="email"></a>
-      <a href="http://localhost:1313" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
-      <a href="http://localhost:1313" class="iconfont icon-twitter" title="twitter"></a>
-      <a href="http://localhost:1313" class="iconfont icon-facebook" title="facebook"></a>
-      <a href="http://localhost:1313" class="iconfont icon-linkedin" title="linkedin"></a>
-      <a href="http://localhost:1313" class="iconfont icon-google" title="google"></a>
-      <a href="http://localhost:1313" class="iconfont icon-github" title="github"></a>
-      <a href="http://localhost:1313" class="iconfont icon-weibo" title="weibo"></a>
-      <a href="http://localhost:1313" class="iconfont icon-zhihu" title="zhihu"></a>
-      <a href="http://localhost:1313" class="iconfont icon-douban" title="douban"></a>
-      <a href="http://localhost:1313" class="iconfont icon-pocket" title="pocket"></a>
-      <a href="http://localhost:1313" class="iconfont icon-tumblr" title="tumblr"></a>
-      <a href="http://localhost:1313" class="iconfont icon-instagram" title="instagram"></a>
-      <a href="http://localhost:1313" class="iconfont icon-gitlab" title="gitlab"></a>
-      <a href="http://localhost:1313" class="iconfont icon-bilibili" title="bilibili"></a>
-  <a href="https://seanhhx.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
-</div>
-
-<div class="copyright">
-  <span class="power-by">
-    由 <a class="hexo-link" href="https://gohugo.io">Hugo</a> 强力驱动
-  </span>
-  <span class="division">|</span>
-  <span class="theme-info">
-    主题 - 
-    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
-  </span>
-
-  
-
-  <span class="copyright-year">
-    &copy; 
-    2017 - 
-    2022<span class="heart"><i class="iconfont icon-heart"></i></span><span>SeanHHX</span>
-  </span>
-</div>
-
-    </footer>
-
-    <div class="back-to-top" id="back-to-top">
-      <i class="iconfont icon-up"></i>
-    </div>
-  </div>
-  
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
-
-
-
-<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
-
-
-
-
-
-
-
-
-</body>
-</html>
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><title>高通骁龙 CPU 绑核操作 - SeanHHX 点点滴滴</title><meta name=renderer content="webkit"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta http-equiv=cache-control content="no-transform"><meta http-equiv=cache-control content="no-siteapp"><meta name=theme-color content="#f8f5ec"><meta name=msapplication-navbutton-color content="#f8f5ec"><meta name=apple-mobile-web-app-capable content="yes"><meta name=apple-mobile-web-app-status-bar-style content="#f8f5ec"><meta name=author content="SeanHHX"><meta name=description content="一、简介 高通骁龙采用 1+3+4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进"><meta name=keywords content="Hugo,theme,even"><meta name=generator content="Hugo 0.101.0 with theme even"><link rel=canonical href=https://seanhhx.cn/post/%E9%AB%98%E9%80%9A%E9%AA%81%E9%BE%99-cpu-%E7%BB%91%E6%A0%B8%E6%93%8D%E4%BD%9C/><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><link rel=mask-icon href=/safari-pinned-tab.svg color=#5bbad5><link href=/sass/main.min.f92fd13721ddf72129410fd8250e73152cc6f2438082b6c0208dc24ee7c13fc4.css rel=stylesheet><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin=anonymous><meta property="og:title" content="高通骁龙 CPU 绑核操作"><meta property="og:description" content="一、简介 高通骁龙采用 1+3+4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进"><meta property="og:type" content="article"><meta property="og:url" content="https://seanhhx.cn/post/%E9%AB%98%E9%80%9A%E9%AA%81%E9%BE%99-cpu-%E7%BB%91%E6%A0%B8%E6%93%8D%E4%BD%9C/"><meta property="article:section" content="post"><meta property="article:published_time" content="2022-08-25T23:31:55+08:00"><meta property="article:modified_time" content="2022-08-25T23:31:55+08:00"><meta itemprop=name content="高通骁龙 CPU 绑核操作"><meta itemprop=description content="一、简介 高通骁龙采用 1+3+4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进"><meta itemprop=datePublished content="2022-08-25T23:31:55+08:00"><meta itemprop=dateModified content="2022-08-25T23:31:55+08:00"><meta itemprop=wordCount content="608"><meta itemprop=keywords content><meta name=twitter:card content="summary"><meta name=twitter:title content="高通骁龙 CPU 绑核操作"><meta name=twitter:description content="一、简介 高通骁龙采用 1+3+4 的设计，1 个 Prime 超大核、3 个 Kryo Gold 核心和 4 个 Kryo Silver 核心，其中 0-3 是 Silver 核心，4-6 是 Gold 核心，7 是 Prime 超大核。 二、CPU 掩码 2 位 16 进"><!--[if lte IE 9]><script src=https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js></script><![endif]--><!--[if lt IE 9]><script src=https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js></script>
+<script src=https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js></script><![endif]--></head><body><div id=mobile-navbar class=mobile-navbar><div class=mobile-header-logo><a href=/ class=logo>Even</a></div><div class=mobile-navbar-icon><span></span>
+<span></span>
+<span></span></div></div><nav id=mobile-menu class="mobile-menu slideout-menu"><ul class=mobile-menu-list><a href=/><li class=mobile-menu-item>Home</li></a><a href=/post/><li class=mobile-menu-item>Archives</li></a><a href=/tags/><li class=mobile-menu-item>Tags</li></a><a href=/categories/><li class=mobile-menu-item>Categories</li></a></ul></nav><div class=container id=mobile-panel><header id=header class=header><div class=logo-wrapper><a href=/ class=logo>Even</a></div><nav class=site-navbar><ul id=menu class=menu><li class=menu-item><a class=menu-item-link href=/>Home</a></li><li class=menu-item><a class=menu-item-link href=/post/>Archives</a></li><li class=menu-item><a class=menu-item-link href=/tags/>Tags</a></li><li class=menu-item><a class=menu-item-link href=/categories/>Categories</a></li></ul></nav></header><main id=main class=main><div class=content-wrapper><div id=content class=content><article class=post><header class=post-header><h1 class=post-title>高通骁龙 CPU 绑核操作</h1><div class=post-meta><span class=post-time>2022-08-25</span></div></header><div class=post-toc id=post-toc><h2 class=post-toc-title>文章目录</h2><div class="post-toc-content always-active"><nav id=TableOfContents><ul><li><ul><li><a href=#一简介>一、简介</a></li><li><a href=#二cpu-掩码>二、CPU 掩码</a></li><li><a href=#三根据掩码绑核>三、根据掩码绑核</a><ul><li><a href=#一-方法一taskset-命令>(一) 方法一：taskset 命令</a></li><li><a href=#二-方法二修改-devcpusettop-appcpus>(二) 方法二：修改 <code>/dev/cpuset/top-app/cpus</code></a></li></ul></li></ul></li></ul></nav></div></div><div class=post-content><h2 id=一简介>一、简介</h2><p>高通骁龙采用 1+3+4 的设计，1 个 <code>Prime</code> 超大核、3 个 <code>Kryo Gold</code> 核心和 4 个 <code>Kryo Silver</code> 核心，其中 0-3 是 <code>Silver</code> 核心，4-6 是 <code>Gold</code> 核心，7 是 <code>Prime</code> 超大核。</p><h2 id=二cpu-掩码>二、CPU 掩码</h2><p>2 位 16 进制，转 2 进制分别对应 8 个核心，对应位为 1 即绑定到该核</p><table><thead><tr><th></th><th style=text-align:left>CPU 序号和掩码对应关系</th><th>备注</th></tr></thead><tbody><tr><td>CPU 序号</td><td style=text-align:left>7 6 5 4 3 2 1 0</td><td></td></tr><tr><td>默认掩码</td><td style=text-align:left>1 1 1 1 1 1 1 1</td><td></td></tr><tr><td>绑定超大核</td><td style=text-align:left>1 0 0 0 0 0 0 0</td><td>可能无法绑定</td></tr><tr><td>绑定大核</td><td style=text-align:left>0 1 1 1 0 0 0 0</td><td>掩码范围：0x10 - 0x70，可视具体情况绑定到指定核</td></tr><tr><td>绑定小核</td><td style=text-align:left>0 0 0 0 1 1 1 1</td><td>掩码范围：0x01 - 0x0f，可视具体情况绑定到指定核</td></tr></tbody></table><h2 id=三根据掩码绑核>三、根据掩码绑核</h2><p>以下两种方式都需要 root 权限</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb root
+</span></span></code></pre></td></tr></table></div></div><h3 id=一-方法一taskset-命令>(一) 方法一：taskset 命令</h3><h4 id=1进程或线程绑核命令>1.进程或线程绑核命令</h4><ul><li><p>增加<code>-a</code>代表进程下的所有线程都设置</p></li><li><p>cpu 掩码对应多个核心时，设置完成后的掩码可能是这几个核心的任意组合，并且会观察到这个值会不断变化</p></li><li><p>新起线程如果值不对需要重设</p></li><li><p>如偶现执行失败可重试</p></li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell taskset -p &lt;cpu_mask&gt; &lt;pid/tid&gt;
+</span></span><span class=line><span class=cl>adb shell taskset -ap &lt;cpu_mask&gt; &lt;pid/tid&gt;
+</span></span></code></pre></td></tr></table></div></div><p><img src=https://raw.githubusercontent.com/SeanHHX/ShareAssets/res/cpu/0.png alt=cpu_0></p><h4 id=2查询进程或线程绑核情况>2.查询进程或线程绑核情况</h4><ul><li>增加<code>-a</code>不管传进程ID还是所属线程ID，都会出来进程所有线程的绑定信息</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell taskset -p &lt;pid/tid&gt;
+</span></span><span class=line><span class=cl>adb shell taskset -ap &lt;pid/tid&gt;
+</span></span></code></pre></td></tr></table></div></div><p><img src=https://raw.githubusercontent.com/SeanHHX/ShareAssets/res/cpu/1.png alt=cpu_1></p><p><img src=https://raw.githubusercontent.com/SeanHHX/ShareAssets/res/cpu/2.png alt=cpu_2></p><h4 id=3常用修改命令>3.常用修改命令</h4><ul><li>绑定超大核</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell taskset -p <span class=m>80</span> &lt;pid&gt;
+</span></span></code></pre></td></tr></table></div></div><ul><li>绑定大核（绑三核，根据cpu mask 可指定具体核）</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell taskset -p <span class=m>70</span> &lt;pid&gt;
+</span></span></code></pre></td></tr></table></div></div><ul><li>绑定小核（绑四核，根据cpu mask 可指定具体核）</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell taskset -p f &lt;pid&gt;
+</span></span></code></pre></td></tr></table></div></div><ul><li>恢复默认</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell taskset -p ff &lt;pid&gt;
+</span></span></code></pre></td></tr></table></div></div><h3 id=二-方法二修改-devcpusettop-appcpus>(二) 方法二：修改 <code>/dev/cpuset/top-app/cpus</code></h3><p><code>/dev/cpuset/top-app/cpus</code> 默认值是 0-7，修改该值会让所有进程都只能使用指定核心，修改方法如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell
+</span></span><span class=line><span class=cl><span class=nb>cd</span> /dev/cpuset/top-app
+</span></span><span class=line><span class=cl><span class=nb>echo</span> 4-6 &gt; cpus
+</span></span></code></pre></td></tr></table></div></div><p>修改完成后使用 taskset 可查看是否符合预期</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>adb shell taskset -p &lt;pid/tid&gt;
+</span></span></code></pre></td></tr></table></div></div></div><div class=post-copyright><p class=copyright-item><span class=item-title>文章作者</span>
+<span class=item-content>SeanHHX</span></p><p class=copyright-item><span class=item-title>上次更新</span>
+<span class=item-content>2022-08-25</span></p></div><footer class=post-footer><nav class=post-nav><a class=next href=/post/git-%E5%9F%BA%E7%A1%80%E6%93%8D%E4%BD%9C/><span class="next-text nav-default">Git 基础操作</span>
+<span class="next-text nav-mobile">下一篇</span>
+<i class="iconfont icon-right"></i></a></nav></footer></article></div></div></main><footer id=footer class=footer><div class=social-links><a href=mailto:your@email.com class="iconfont icon-email" title=email></a>
+<a href=http://localhost:1313 class="iconfont icon-stack-overflow" title=stack-overflow></a>
+<a href=http://localhost:1313 class="iconfont icon-twitter" title=twitter></a>
+<a href=http://localhost:1313 class="iconfont icon-facebook" title=facebook></a>
+<a href=http://localhost:1313 class="iconfont icon-linkedin" title=linkedin></a>
+<a href=http://localhost:1313 class="iconfont icon-google" title=google></a>
+<a href=http://localhost:1313 class="iconfont icon-github" title=github></a>
+<a href=http://localhost:1313 class="iconfont icon-weibo" title=weibo></a>
+<a href=http://localhost:1313 class="iconfont icon-zhihu" title=zhihu></a>
+<a href=http://localhost:1313 class="iconfont icon-douban" title=douban></a>
+<a href=http://localhost:1313 class="iconfont icon-pocket" title=pocket></a>
+<a href=http://localhost:1313 class="iconfont icon-tumblr" title=tumblr></a>
+<a href=http://localhost:1313 class="iconfont icon-instagram" title=instagram></a>
+<a href=http://localhost:1313 class="iconfont icon-gitlab" title=gitlab></a>
+<a href=http://localhost:1313 class="iconfont icon-bilibili" title=bilibili></a>
+<a href=https://seanhhx.cn/index.xml type=application/rss+xml class="iconfont icon-rss" title=rss></a></div><div class=copyright><span class=power-by>由 <a class=hexo-link href=https://gohugo.io>Hugo</a> 强力驱动</span>
+<span class=division>|</span>
+<span class=theme-info>主题 -
+<a class=theme-link href=https://github.com/olOwOlo/hugo-theme-even>Even</a></span>
+<span class=copyright-year>&copy;
+2017 -
+2022<span class=heart><i class="iconfont icon-heart"></i></span><span>SeanHHX</span></span></div></footer><div class=back-to-top id=back-to-top><i class="iconfont icon-up"></i></div></div><script src=https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin=anonymous></script>
+<script src=https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin=anonymous></script>
+<script src=https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin=anonymous></script>
+<script type=text/javascript src=/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js></script></body></html>
