@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: https://seanhhx.cn/sitemap.xml
+Sitemap: http://seanhhx.cn/sitemap.xml
