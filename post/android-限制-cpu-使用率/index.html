@@ -11,7 +11,10 @@
 </span></span></code></pre></td></tr></table></div></div><h3 id=4设备默认分组路径>4.设备默认分组路径</h3><p>可以将具体的 PID/TID 分配到不同的分组里</p><p>默认分组：<code>/dev/cpuctl</code></p><p>后台分组：<code>/dev/cpuctl/bg_non_interactive</code></p><h2 id=二-具体操作方法>(二) 具体操作方法</h2><h3 id=1新建分组>1.新建分组</h3><p>默认分组下新建分组，如<code>cpu_test</code>，对应文件路径即为<code>/dev/cpuctl/cpu_test</code></p><h3 id=2修改限制值>2.修改限制值</h3><p><code>cpu_test</code>目录下修改<code>cpu.cfs_period_us</code>和<code>cpu.cfs_quota_us</code></p><h3 id=3限制进程线程>3.限制进程/线程</h3><p>将想要限制的 PID/TID 写入<code>cpu_test</code>组下的 <code>tasks</code> 文件</p><h1 id=三效果展示>三、效果展示</h1><p>正常运行</p><center><img src=https://raw.githubusercontents.com/SeanHHX/ShareAssets/res/cpu/cgroup0.png alt=cgroup_0 style=zoom:67%></center><p>限制 CPU 运行</p><center><img src=https://raw.githubusercontents.com/SeanHHX/ShareAssets/res/cpu/cgroup1.png alt=cgroup_1 style=zoom:67%></center></div><div class=post-copyright><p class=copyright-item><span class=item-title>文章作者</span>
 <span class=item-content>SeanHHX</span></p><p class=copyright-item><span class=item-title>上次更新</span>
 <span class=item-content>2022-09-04</span></p></div><footer class=post-footer><div class=post-tags><a href=/tags/cpu/>CPU</a>
-<a href=/tags/android/>Android</a></div><nav class=post-nav><a class=next href=/post/%E9%AB%98%E9%80%9A%E9%AA%81%E9%BE%99-cpu-%E7%BB%91%E6%A0%B8%E6%93%8D%E4%BD%9C/><span class="next-text nav-default">高通骁龙 CPU 绑核操作</span>
+<a href=/tags/android/>Android</a></div><nav class=post-nav><a class=prev href=/post/adb-%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/><i class="iconfont icon-left"></i>
+<span class="prev-text nav-default">ADB 常用命令</span>
+<span class="prev-text nav-mobile">上一篇</span></a>
+<a class=next href=/post/%E9%AB%98%E9%80%9A%E9%AA%81%E9%BE%99-cpu-%E7%BB%91%E6%A0%B8%E6%93%8D%E4%BD%9C/><span class="next-text nav-default">高通骁龙 CPU 绑核操作</span>
 <span class="next-text nav-mobile">下一篇</span>
 <i class="iconfont icon-right"></i></a></nav></footer></article></div></div></main><footer id=footer class=footer><div class=social-links><a href=https://github.com/SeanHHX class="iconfont icon-github" title=github></a></div><div class=copyright><span class=email>huanghx.cqupt@gmail.com</span>
 <span class=copyright-year>&copy;
