@@ -122,7 +122,7 @@ const ENGLISH_PHRASES = [
   { en: 'How are you?', cn: '你好吗？' },
   { en: 'I am fine, thank you!', cn: '我很好，谢谢！' },
   { en: 'What is your name?', cn: '你叫什么名字？' },
-  { en: 'My name is Tianbao.', cn: '我叫甜宝。' },
+  { en: 'My name is Star.', cn: '我叫小星。' },
   { en: 'Nice to meet you!', cn: '很高兴认识你！' },
   { en: 'I love you, Mom!', cn: '妈妈，我爱你！' },
   { en: 'I love you, Dad!', cn: '爸爸，我爱你！' },
@@ -379,7 +379,7 @@ function celebrate() {
 }
 
 /* ==================== LocalStorage ==================== */
-const STORE_KEY = 'tianbao_workstation';
+const STORE_KEY = 'star_voyage_academy';
 
 function loadData() {
   try {
