@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="甜宝工作台">
+<title>甜宝幼小衔接工作台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌟</text></svg>">
+<style>
+/* ==================== 全局重置 ==================== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --c-primary: #FF6B9D;
+  --c-secondary: #4ECDC4;
+  --c-accent: #FFE66D;
+  --c-purple: #A78BFA;
+  --c-orange: #FFA94D;
+  --c-green: #51CF66;
+  --c-blue: #4DABF7;
+  --c-pink: #FF8FAB;
+  --c-bg: #FFF5F0;
+  --c-card: #FFFFFF;
+  --c-text: #3D3D5C;
+  --c-text-light: #8E8EA0;
+  --c-border: #FFE0E0;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 4px 16px rgba(255,107,157,0.12);
+  --shadow-lg: 0 8px 30px rgba(255,107,157,0.18);
+  --sidebar-w: 88px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==================== 主布局 ==================== */
+.app {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ==================== 侧边导航栏 ==================== */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: linear-gradient(180deg, #FF6B9D 0%, #C44BE0 50%, #7B68EE 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 6px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 10;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+.sidebar-logo {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  margin-top: 4px;
+  animation: bounce 2s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.nav-item {
+  width: 72px;
+  min-height: 64px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  color: rgba(255,255,255,0.75);
+  flex-shrink: 0;
+  position: relative;
+}
+.nav-item .nav-icon { font-size: 1.5rem; line-height: 1; }
+.nav-item .nav-label { font-size: 0.625rem; font-weight: 600; text-align: center; line-height: 1.2; }
+.nav-item.active {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.nav-item:active { transform: scale(0.92); }
+.nav-item .nav-badge {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: #FFE66D;
+  color: #FF6B9D;
+  font-size: 0.5rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* ==================== 主内容区 ==================== */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px;
+  position: relative;
+}
+.main::-webkit-scrollbar { width: 0; }
+
+.page { display: none; animation: fadeIn 0.3s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ==================== 头部 ==================== */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding: 0 4px;
+}
+.page-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FF6B9D, #C44BE0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.date-badge {
+  background: #fff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--c-text-light);
+  box-shadow: var(--shadow);
+}
+
+/* ==================== 卡片 ==================== */
+.card {
+  background: var(--c-card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-title .emoji { font-size: 1.2rem; }
+
+/* ==================== 打卡卡片 ==================== */
+.checkin-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.checkin-card.done {
+  background: linear-gradient(135deg, #d4f4dd, #e8fce8);
+  opacity: 0.85;
+}
+.checkin-card .check-circle {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  border: 3px solid #E0E0E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.3s;
+  background: #fff;
+}
+.checkin-card.done .check-circle {
+  background: var(--c-green);
+  border-color: var(--c-green);
+  color: #fff;
+}
+.checkin-card .check-info { flex: 1; min-width: 0; }
+.checkin-card .check-name { font-weight: 700; font-size: 0.9rem; }
+.checkin-card .check-desc { font-size: 0.7rem; color: var(--c-text-light); margin-top: 2px; }
+.checkin-card .check-time { font-size: 0.65rem; color: var(--c-green); font-weight: 600; }
+.checkin-card .delete-btn {
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: #FFF0F0; color: #FF6B6B; font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.checkin-card .delete-btn:active { transform: scale(0.9); }
+
+/* ==================== 按钮 ==================== */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:active { transform: scale(0.95); }
+.btn-primary { background: linear-gradient(135deg, #FF6B9D, #C44BE0); color: #fff; box-shadow: 0 4px 12px rgba(255,107,157,0.3); }
+.btn-secondary { background: #F0F0F8; color: var(--c-text); }
+.btn-success { background: linear-gradient(135deg, #51CF66, #37B24D); color: #fff; }
+.btn-warning { background: linear-gradient(135deg, #FFE66D, #FFD43B); color: #856404; }
+.btn-sm { padding: 6px 14px; font-size: 0.75rem; }
+
+/* ==================== 古诗 ==================== */
+.poem-box {
+  background: linear-gradient(135deg, #FFF9E6, #FFF0F5);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  text-align: center;
+  border: 2px dashed #FFD6E0;
+}
+.poem-title { font-size: 1.4rem; font-weight: 800; color: #C44BE0; margin-bottom: 4px; }
+.poem-author { font-size: 0.8rem; color: var(--c-text-light); margin-bottom: 16px; }
+.poem-lines { font-size: 1.1rem; line-height: 2.2; font-family: "STKaiti", "KaiTi", serif; color: #555; }
+.poem-actions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+
+/* ==================== 识字卡片 ==================== */
+.char-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.char-item {
+  background: linear-gradient(135deg, #FFF9E6, #FFE6F0);
+  border-radius: var(--radius-sm);
+  padding: 12px 4px;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.char-item:active { transform: scale(0.9); border-color: var(--c-primary); }
+.char-item .char { font-size: 1.8rem; font-weight: 800; color: #333; font-family: "STKaiti", "KaiTi", serif; }
+.char-item .pinyin { font-size: 0.7rem; color: var(--c-purple); margin-top: 2px; }
+.char-item .meaning { font-size: 0.6rem; color: var(--c-text-light); margin-top: 2px; }
+
+/* ==================== 成语 ==================== */
+.idiom-box {
+  background: linear-gradient(135deg, #E6F9FF, #F0E6FF);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.idiom-name { font-size: 1.5rem; font-weight: 800; color: var(--c-blue); text-align: center; margin-bottom: 8px; }
+.idiom-pinyin { text-align: center; font-size: 0.8rem; color: var(--c-purple); margin-bottom: 12px; }
+.idiom-meaning { font-size: 0.85rem; color: #555; line-height: 1.8; margin-bottom: 10px; }
+.idiom-story { font-size: 0.8rem; color: #666; line-height: 1.8; background: rgba(255,255,255,0.6); padding: 12px; border-radius: var(--radius-sm); }
+
+/* ==================== 数学 ==================== */
+.math-stats { display: flex; gap: 8px; margin-bottom: 12px; }
+.stat-pill {
+  flex: 1;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-pill .stat-num { font-size: 1.4rem; font-weight: 800; }
+.stat-pill .stat-label { font-size: 0.65rem; color: var(--c-text-light); }
+.stat-pill.correct .stat-num { color: var(--c-green); }
+.stat-pill.wrong .stat-num { color: #FF6B6B; }
+.stat-pill.total .stat-num { color: var(--c-blue); }
+
+.math-problem {
+  background: linear-gradient(135deg, #E6F4FF, #F0E6FF);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.math-problem .problem-text { font-size: 2.2rem; font-weight: 800; color: #333; }
+.math-problem .method-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.method-tag.poshi { background: #FFE0E0; color: #FF6B6B; }
+.method-tag.coushi { background: #E0F0FF; color: #4DABF7; }
+.method-tag.normal { background: #E0FFE0; color: #51CF66; }
+.math-input {
+  width: 100px;
+  height: 50px;
+  border: 3px solid var(--c-primary);
+  border-radius: var(--radius-sm);
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  margin-top: 12px;
+  color: var(--c-text);
+}
+.math-input:focus { box-shadow: 0 0 0 4px rgba(255,107,157,0.2); }
+.math-actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+
+/* ==================== 英语 ==================== */
+.english-phrase {
+  background: linear-gradient(135deg, #E6FFF0, #E6F9FF);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.english-phrase .phrase-num {
+  width: 28px; height: 28px; min-width: 28px;
+  border-radius: 50%;
+  background: var(--c-green);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.english-phrase .phrase-content { flex: 1; }
+.english-phrase .en { font-size: 1rem; font-weight: 700; color: #333; }
+.english-phrase .cn { font-size: 0.75rem; color: var(--c-text-light); margin-top: 2px; }
+.english-phrase .speak-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: #4DABF7; color: #fff; font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.word-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.word-card {
+  background: linear-gradient(135deg, #FFF9E6, #E6F4FF);
+  border-radius: var(--radius-sm);
+  padding: 14px 10px;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+}
+.word-card .word-emoji { font-size: 2rem; }
+.word-card .word-en { font-size: 1rem; font-weight: 700; color: #333; margin-top: 4px; }
+.word-card .word-cn { font-size: 0.7rem; color: var(--c-text-light); }
+.word-card:active { transform: scale(0.92); }
+
+/* ==================== 锻炼 ==================== */
+.exercise-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+.exercise-item .ex-icon { font-size: 2rem; }
+.exercise-item .ex-info { flex: 1; }
+.exercise-item .ex-name { font-weight: 700; font-size: 0.9rem; }
+.exercise-item .ex-desc { font-size: 0.7rem; color: var(--c-text-light); margin-top: 2px; }
+.exercise-item .ex-duration { font-size: 0.75rem; font-weight: 700; color: var(--c-orange); }
+
+/* ==================== 游戏通用 ==================== */
+.game-container {
+  background: linear-gradient(180deg, #E6F4FF, #FFF0F5);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.game-score {
+  background: #fff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+}
+.game-level {
+  background: var(--c-accent);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #856404;
+}
+
+/* 拼音对对碰 */
+.match-area { display: flex; gap: 12px; }
+.match-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.match-card {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 3px solid transparent;
+  box-shadow: var(--shadow);
+}
+.match-card:active { transform: scale(0.92); }
+.match-card.selected { border-color: var(--c-primary); background: #FFF0F5; }
+.match-card.matched { background: #D4F4DD; border-color: var(--c-green); pointer-events: none; opacity: 0.6; }
+.match-card.wrong { animation: shake 0.4s; border-color: #FF6B6B; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+/* 抓大鹅 */
+.goose-game-area {
+  position: relative;
+  height: 380px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #B3E5FC 0%, #E1F5FE 50%, #FFF9C4 100%);
+}
+.goose-target {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+  z-index: 5;
+  white-space: nowrap;
+}
+.goose {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s;
+  user-select: none;
+}
+.goose:active { transform: scale(0.85); }
+.goose .goose-emoji { font-size: 2.2rem; }
+.goose .goose-word { font-size: 0.65rem; font-weight: 700; background: #fff; padding: 1px 6px; border-radius: 8px; margin-top: -4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.goose.caught { animation: caughtAnim 0.5s forwards; }
+@keyframes caughtAnim {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5) rotate(360deg); }
+  100% { transform: scale(0) rotate(720deg); opacity: 0; }
+}
+.goose.wrong { animation: wrongGoose 0.4s; }
+@keyframes wrongGoose {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+/* ==================== 积分奖励 ==================== */
+.points-display {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 20px rgba(255,165,0,0.3);
+}
+.points-display .points-label { font-size: 0.8rem; color: rgba(255,255,255,0.9); font-weight: 600; }
+.points-display .points-num { font-size: 3rem; font-weight: 900; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.points-display .points-sub { font-size: 0.7rem; color: rgba(255,255,255,0.8); }
+
+.reward-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+.reward-item .reward-icon { font-size: 2rem; }
+.reward-item .reward-info { flex: 1; }
+.reward-item .reward-name { font-weight: 700; font-size: 0.9rem; }
+.reward-item .reward-pts { font-size: 0.7rem; color: var(--c-orange); font-weight: 600; margin-top: 2px; }
+.reward-item .reward-progress { font-size: 0.65rem; color: var(--c-text-light); margin-top: 2px; }
+.reward-item .reward-actions { display: flex; gap: 6px; }
+.reward-item .reward-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.reward-item .edit-btn { background: #E6F4FF; color: #4DABF7; }
+.reward-item .del-btn { background: #FFF0F0; color: #FF6B6B; }
+.reward-item.claimed { opacity: 0.5; background: #F0F0F8; }
+.reward-item.claimed .reward-name::after { content: ' ✅'; }
+
+.progress-bar {
+  height: 8px;
+  background: #F0F0F8;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #FFA500);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* ==================== 添加任务/奖励 弹窗 ==================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; animation: fadeIn 0.2s; }
+.modal {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: var(--shadow-lg);
+}
+.modal h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; text-align: center; color: var(--c-primary); }
+.modal-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #FFE0E0;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  outline: none;
+  transition: border 0.2s;
+}
+.modal-input:focus { border-color: var(--c-primary); }
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+.modal-actions .btn { flex: 1; justify-content: center; }
+.modal select.modal-input { appearance: none; background: #fff; }
+
+/* ==================== Toast 提示 ==================== */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 200;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ==================== 控笔训练 ==================== */
+.pen-train-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+.pen-train-item .pen-icon { font-size: 1.6rem; }
+.pen-train-item .pen-info { flex: 1; }
+.pen-train-item .pen-name { font-weight: 700; font-size: 0.85rem; }
+.pen-train-item .pen-link { font-size: 0.7rem; color: var(--c-blue); margin-top: 2px; }
+.pen-train-item .pen-go {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--c-blue);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+/* ==================== 拼音练习 ==================== */
+.pinyin-exercise {
+  background: #FFF9E6;
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+.pinyin-exercise .py-question { font-size: 1.4rem; font-weight: 700; color: #C44BE0; margin-bottom: 4px; }
+.pinyin-exercise .py-hint { font-size: 0.75rem; color: var(--c-text-light); margin-bottom: 14px; }
+.py-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.py-option {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s;
+}
+.py-option:active { transform: scale(0.95); }
+.py-option.correct { background: #D4F4DD; border-color: var(--c-green); }
+.py-option.wrong { background: #FFE0E0; border-color: #FF6B6B; }
+
+/* ==================== 绘本推荐 ==================== */
+.book-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  background: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+}
+.book-item .book-cover { font-size: 2.5rem; }
+.book-item .book-info { flex: 1; }
+.book-item .book-title { font-weight: 700; font-size: 0.9rem; }
+.book-item .book-desc { font-size: 0.7rem; color: var(--c-text-light); margin-top: 4px; line-height: 1.5; }
+
+/* ==================== 思维练习 ==================== */
+.thinking-q {
+  background: #F0E6FF;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+.thinking-q .tq-num { font-size: 0.7rem; color: var(--c-purple); font-weight: 700; margin-bottom: 6px; }
+.thinking-q .tq-text { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; line-height: 1.6; }
+.thinking-q .tq-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.thinking-q .tq-option {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 2px solid transparent;
+  text-align: center;
+  transition: all 0.2s;
+}
+.thinking-q .tq-option:active { transform: scale(0.95); }
+.thinking-q .tq-option.correct { background: #D4F4DD; border-color: var(--c-green); }
+.thinking-q .tq-option.wrong { background: #FFE0E0; border-color: #FF6B6B; }
+
+/* ==================== 错题本 ==================== */
+.wrong-item {
+  background: #FFF5F5;
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 8px;
+  border-left: 4px solid #FF6B6B;
+}
+.wrong-item .wi-q { font-size: 0.9rem; font-weight: 600; }
+.wrong-item .wi-answer { font-size: 0.75rem; color: var(--c-green); margin-top: 4px; }
+.wrong-item .wi-tag { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.6rem; font-weight: 700; margin-top: 4px; }
+
+/* ==================== 数感星球 ==================== */
+.number-sense-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.ns-card {
+  background: linear-gradient(135deg, #E6F4FF, #E6FFF0);
+  border-radius: var(--radius-sm);
+  padding: 16px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ns-card:active { transform: scale(0.9); }
+.ns-card .ns-emoji { font-size: 1.8rem; }
+.ns-card .ns-name { font-size: 0.75rem; font-weight: 700; margin-top: 4px; }
+
+/* ==================== 庆祝动画 ==================== */
+.celebration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  display: none;
+}
+.celebration.show { display: block; }
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: confettiFall 3s ease-in forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--c-text-light);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state .empty-text { font-size: 0.85rem; }
+
+/* ==================== 添加按钮 ==================== */
+.add-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed var(--c-primary);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--c-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+.add-btn:active { transform: scale(0.98); }
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 380px) {
+  :root { --sidebar-w: 76px; }
+  .nav-item { width: 64px; min-height: 56px; }
+  .nav-item .nav-icon { font-size: 1.3rem; }
+  .nav-item .nav-label { font-size: 0.55rem; }
+  .char-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .char-item .char { font-size: 1.5rem; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ==================== 侧边导航栏 ==================== -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">🌟</div>
+    <div class="nav-item active" data-page="home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">首页</span>
+    </div>
+    <div class="nav-item" data-page="chinese">
+      <span class="nav-icon">📖</span>
+      <span class="nav-label">语文</span>
+    </div>
+    <div class="nav-item" data-page="math">
+      <span class="nav-icon">🔢</span>
+      <span class="nav-label">数学</span>
+    </div>
+    <div class="nav-item" data-page="english">
+      <span class="nav-icon">🔤</span>
+      <span class="nav-label">英语</span>
+    </div>
+    <div class="nav-item" data-page="exercise">
+      <span class="nav-icon">⚽</span>
+      <span class="nav-label">锻炼</span>
+    </div>
+    <div class="nav-item" data-page="games">
+      <span class="nav-icon">🎮</span>
+      <span class="nav-label">游戏</span>
+    </div>
+    <div class="nav-item" data-page="rewards">
+      <span class="nav-icon">🏆</span>
+      <span class="nav-label">打卡</span>
+      <span class="nav-badge" id="navBadge" style="display:none">!</span>
+    </div>
+  </nav>
+
+  <!-- ==================== 主内容区 ==================== -->
+  <main class="main">
+
+    <!-- ===== 首页 ===== -->
+    <div class="page active" id="page-home">
+      <div class="page-header">
+        <div class="page-title">甜宝工作台 🌟</div>
+        <div class="date-badge" id="todayDate"></div>
+      </div>
+      <div class="card" style="background:linear-gradient(135deg,#FF6B9D,#C44BE0);color:#fff">
+        <div style="font-size:1.5rem;font-weight:800;margin-bottom:4px">早安，甜宝！</div>
+        <div style="font-size:0.8rem;opacity:0.9" id="greetingText">今天也要加油哦~</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="emoji">📋</span>今日打卡进度</div>
+        <div id="homeProgress"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="emoji">⭐</span>我的积分</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:2.5rem;font-weight:900;color:var(--c-orange)" id="homePoints">0</div>
+          <div style="flex:1">
+            <div style="font-size:0.75rem;color:var(--c-text-light)">距离下一个奖励</div>
+            <div class="progress-bar" style="margin-top:4px"><div class="progress-bar-fill" id="homeProgressFill" style="width:0%"></div></div>
+            <div style="font-size:0.7rem;color:var(--c-orange);font-weight:600;margin-top:4px" id="homeNextReward">--</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="emoji">🎨</span>快速入口</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div class="ns-card" onclick="goTo('chinese')"><div class="ns-emoji">📖</div><div class="ns-name">语文</div></div>
+          <div class="ns-card" onclick="goTo('math')"><div class="ns-emoji">🔢</div><div class="ns-name">数学</div></div>
+          <div class="ns-card" onclick="goTo('english')"><div class="ns-emoji">🔤</div><div class="ns-name">英语</div></div>
+          <div class="ns-card" onclick="goTo('exercise')"><div class="ns-emoji">⚽</div><div class="ns-name">锻炼</div></div>
+          <div class="ns-card" onclick="goTo('games')"><div class="ns-emoji">🎮</div><div class="ns-name">游戏</div></div>
+          <div class="ns-card" onclick="goTo('rewards')"><div class="ns-emoji">🏆</div><div class="ns-name">打卡</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 语文 ===== -->
+    <div class="page" id="page-chinese">
+      <div class="page-header">
+        <div class="page-title">语文 📖</div>
+        <div class="date-badge" id="chineseDate"></div>
+      </div>
+      <div id="chineseContent"></div>
+    </div>
+
+    <!-- ===== 数学 ===== -->
+    <div class="page" id="page-math">
+      <div class="page-header">
+        <div class="page-title">数学 🔢</div>
+        <div class="date-badge" id="mathDate"></div>
+      </div>
+      <div id="mathContent"></div>
+    </div>
+
+    <!-- ===== 英语 ===== -->
+    <div class="page" id="page-english">
+      <div class="page-header">
+        <div class="page-title">每日英语 🔤</div>
+        <div class="date-badge" id="englishDate"></div>
+      </div>
+      <div id="englishContent"></div>
+    </div>
+
+    <!-- ===== 锻炼 ===== -->
+    <div class="page" id="page-exercise">
+      <div class="page-header">
+        <div class="page-title">每日锻炼 ⚽</div>
+        <div class="date-badge" id="exerciseDate"></div>
+      </div>
+      <div id="exerciseContent"></div>
+    </div>
+
+    <!-- ===== 游戏 ===== -->
+    <div class="page" id="page-games">
+      <div class="page-header">
+        <div class="page-title">游戏乐园 🎮</div>
+        <div class="date-badge">玩中学</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="emoji">🀄</span>拼音文字对对碰</div>
+        <div style="font-size:0.75rem;color:var(--c-text-light);margin-bottom:10px">点击左边的字和右边的拼音，配对成功即可消除！闯过所有关卡就是拼读小达人！</div>
+        <div class="game-container" id="pinyinGame"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="emoji">🦢</span>抓大鹅学英语</div>
+        <div style="font-size:0.75rem;color:var(--c-text-light);margin-bottom:10px">看顶部的中文，点击对应英文单词的大鹅，抓到就是你的啦！</div>
+        <div class="game-container" id="gooseGame"></div>
+      </div>
+    </div>
+
+    <!-- ===== 打卡奖励 ===== -->
+    <div class="page" id="page-rewards">
+      <div class="page-header">
+        <div class="page-title">打卡奖励 🏆</div>
+        <div class="date-badge" id="rewardsDate"></div>
+      </div>
+      <div class="points-display">
+        <div class="points-label">我的积分</div>
+        <div class="points-num" id="totalPoints">0</div>
+        <div class="points-sub" id="pointsSub">完成今日全部打卡 +1积分</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="emoji">📋</span>今日打卡任务</div>
+        <div id="checkinList"></div>
+        <button class="add-btn" onclick="openAddTaskModal()">➕ 新增打卡任务</button>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="emoji">🎁</span>积分奖励</div>
+        <div id="rewardList"></div>
+        <button class="add-btn" onclick="openAddRewardModal()">➕ 新增奖励</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ==================== 弹窗 ==================== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- ==================== Toast ==================== -->
+<div class="toast" id="toast"></div>
+
+<!-- ==================== 庆祝动画 ==================== -->
+<div class="celebration" id="celebration"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
