@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="星辰学习平台">
+  <defs>
+    <linearGradient id="sky" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3F82FF"/>
+      <stop offset="0.52" stop-color="#5665F1"/>
+      <stop offset="1" stop-color="#7A4FE0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(212 174) rotate(48) scale(310)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A8D8FF" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#A8D8FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="132" fill="url(#sky)"/>
+  <rect x="24" y="24" width="464" height="464" rx="132" fill="url(#glow)"/>
+  <path d="M250 92C264 184 282 202 374 216C282 230 264 248 250 340C236 248 218 230 126 216C218 202 236 184 250 92Z" fill="white"/>
+  <path d="M385 282C391 320 399 328 437 334C399 340 391 348 385 386C379 348 371 340 333 334C371 328 379 320 385 282Z" fill="#FFE97A"/>
+  <path d="M132 310C136 336 142 342 168 346C142 350 136 356 132 382C128 356 122 350 96 346C122 342 128 336 132 310Z" fill="#BFEAFF"/>
+</svg>
