@@ -2,7 +2,10 @@
   'use strict';
 
   const STORAGE_KEY = 'star_ai_access_token_v1';
+  const CHAT_HISTORY_STORAGE_KEY = 'star_ai_chat_history_v1';
   const MAX_HISTORY_MESSAGES = 8;
+  const MAX_CONVERSATIONS = 20;
+  const MAX_CONVERSATION_MESSAGES = 40;
   const SUGGESTION_COUNT_MIN = 5;
   const SUGGESTION_COUNT_MAX = 6;
   const SUGGESTION_TIMEOUT_MS = 20000;
@@ -30,7 +33,10 @@
     suggestionAbortController: null,
     suggestionRequestId: 0,
     lastFocused: null,
-    messages: []
+    messages: [],
+    conversations: [],
+    activeConversationId: null,
+    historyOpen: false
   };
 
   const host = document.querySelector('[data-ai-chat-launcher]');
@@ -65,13 +71,34 @@
           <div class="aiq-subtitle"><span class="aiq-status-dot"></span><span data-aiq-status>本地模型 · 隐私运行</span></div>
         </div>
       </div>
-      <button class="aiq-close" type="button" aria-label="关闭 AI 问答">×</button>
+      <div class="aiq-header-actions">
+        <button class="aiq-history-toggle" type="button" aria-label="查看对话历史" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>历史</span>
+        </button>
+        <button class="aiq-close" type="button" aria-label="关闭 AI 问答">×</button>
+      </div>
     </header>
+    <div class="aiq-history-shade" data-open="false" aria-hidden="true"></div>
+    <aside class="aiq-history-drawer" data-open="false" aria-hidden="true" aria-label="对话历史">
+      <div class="aiq-history-header">
+        <div>
+          <div class="aiq-history-title">对话历史</div>
+          <div class="aiq-history-subtitle">保存在当前浏览器</div>
+        </div>
+        <button class="aiq-new-chat" type="button">
+          <span aria-hidden="true">＋</span> 新对话
+        </button>
+      </div>
+      <div class="aiq-history-list" data-aiq-history-list></div>
+      <div class="aiq-history-note">最多保存 20 个会话，较早记录会自动移除。</div>
+    </aside>
     <div class="aiq-body" aria-live="polite" aria-label="对话内容">
-      <div class="aiq-message" data-role="assistant">
+      <div class="aiq-message aiq-welcome" data-role="assistant">
         <div class="aiq-message-avatar" aria-hidden="true">✦</div>
         <div class="aiq-bubble">你好呀！我是运行在家中电脑上的星辰 AI。可以问我学习、生活和科学小问题。</div>
       </div>
+      <div class="aiq-conversation" data-aiq-conversation></div>
       <div class="aiq-suggestion-block">
         <div class="aiq-suggestion-header">
           <span>试试这样问</span>
@@ -104,7 +131,14 @@
 
   const launcher = host.querySelector('.aiq-launcher');
   const closeButton = panel.querySelector('.aiq-close');
+  const historyToggle = panel.querySelector('.aiq-history-toggle');
+  const historyShade = panel.querySelector('.aiq-history-shade');
+  const historyDrawer = panel.querySelector('.aiq-history-drawer');
+  const historyList = panel.querySelector('[data-aiq-history-list]');
+  const newChatButton = panel.querySelector('.aiq-new-chat');
   const body = panel.querySelector('.aiq-body');
+  const welcome = panel.querySelector('.aiq-welcome');
+  const conversation = panel.querySelector('[data-aiq-conversation]');
   const composer = panel.querySelector('.aiq-composer');
   const input = panel.querySelector('.aiq-input');
   const sendButton = panel.querySelector('.aiq-send');
@@ -114,6 +148,190 @@
   const suggestionBlock = panel.querySelector('.aiq-suggestion-block');
   const suggestionStatus = panel.querySelector('[data-aiq-suggestion-status]');
   const suggestions = panel.querySelector('.aiq-suggestions');
+
+  function loadConversations() {
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(CHAT_HISTORY_STORAGE_KEY) || '[]');
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((item) => {
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !Array.isArray(item.messages)) return null;
+        const messages = item.messages
+          .filter((message) => (
+            message &&
+            (message.role === 'user' || message.role === 'assistant') &&
+            typeof message.content === 'string' &&
+            message.content.trim()
+          ))
+          .slice(-MAX_CONVERSATION_MESSAGES)
+          .map((message) => ({ role: message.role, content: message.content.slice(0, 6000) }));
+        if (!messages.length) return null;
+        const createdAt = Number.isFinite(item.createdAt) ? item.createdAt : Date.now();
+        const updatedAt = Number.isFinite(item.updatedAt) ? item.updatedAt : createdAt;
+        return {
+          id: item.id,
+          title: typeof item.title === 'string' && item.title.trim() ? item.title.trim().slice(0, 40) : '学习对话',
+          createdAt,
+          updatedAt,
+          messages
+        };
+      }).filter(Boolean).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_CONVERSATIONS);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function persistConversations() {
+    state.conversations.sort((a, b) => b.updatedAt - a.updatedAt);
+    state.conversations = state.conversations.slice(0, MAX_CONVERSATIONS);
+    try {
+      window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(state.conversations));
+      return true;
+    } catch (_) {
+      while (state.conversations.length > 1) {
+        state.conversations.pop();
+        try {
+          window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(state.conversations));
+          return true;
+        } catch (_) {
+          // 存储空间不足时继续移除最早的历史，优先保留最近会话。
+        }
+      }
+      return false;
+    }
+  }
+
+  function createConversationId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  function conversationTitle(message) {
+    const compact = String(message || '').replace(/\s+/g, ' ').trim();
+    return compact.length > 24 ? `${compact.slice(0, 24)}…` : compact || '学习对话';
+  }
+
+  function saveActiveConversation() {
+    if (!state.messages.length) return;
+    const now = Date.now();
+    let item = state.conversations.find((conversationItem) => conversationItem.id === state.activeConversationId);
+    if (!item) {
+      item = {
+        id: createConversationId(),
+        title: conversationTitle(state.messages.find((message) => message.role === 'user')?.content),
+        createdAt: now,
+        updatedAt: now,
+        messages: []
+      };
+      state.activeConversationId = item.id;
+      state.conversations.unshift(item);
+    }
+    item.updatedAt = now;
+    item.messages = state.messages.slice(-MAX_CONVERSATION_MESSAGES).map((message) => ({
+      role: message.role,
+      content: message.content
+    }));
+    persistConversations();
+    renderHistoryList();
+  }
+
+  function formatHistoryTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const sameDay = date.toDateString() === now.toDateString();
+    if (sameDay) return new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit' }).format(date);
+    return new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' }).format(date);
+  }
+
+  function renderHistoryList() {
+    if (!state.conversations.length) {
+      const empty = document.createElement('div');
+      empty.className = 'aiq-history-empty';
+      empty.innerHTML = '<span aria-hidden="true">✦</span><strong>还没有对话记录</strong><small>提出第一个问题后会自动保存在这里。</small>';
+      historyList.replaceChildren(empty);
+      return;
+    }
+
+    historyList.replaceChildren(...state.conversations.map((item) => {
+      const row = document.createElement('div');
+      row.className = 'aiq-history-row';
+      if (item.id === state.activeConversationId) row.dataset.active = 'true';
+
+      const openButton = document.createElement('button');
+      openButton.className = 'aiq-history-item';
+      openButton.type = 'button';
+      openButton.dataset.conversationId = item.id;
+      if (item.id === state.activeConversationId) openButton.setAttribute('aria-current', 'true');
+
+      const title = document.createElement('span');
+      title.className = 'aiq-history-item-title';
+      title.textContent = item.title;
+      const meta = document.createElement('span');
+      meta.className = 'aiq-history-item-meta';
+      meta.textContent = `${Math.ceil(item.messages.length / 2)} 轮 · ${formatHistoryTime(item.updatedAt)}`;
+      openButton.append(title, meta);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'aiq-history-delete';
+      deleteButton.type = 'button';
+      deleteButton.dataset.deleteConversationId = item.id;
+      deleteButton.setAttribute('aria-label', `删除对话：${item.title}`);
+      deleteButton.textContent = '×';
+      row.append(openButton, deleteButton);
+      return row;
+    }));
+  }
+
+  function setHistoryOpen(open) {
+    if (open && state.sending) return;
+    state.historyOpen = open;
+    historyDrawer.dataset.open = String(open);
+    historyShade.dataset.open = String(open);
+    historyDrawer.setAttribute('aria-hidden', String(!open));
+    historyShade.setAttribute('aria-hidden', String(!open));
+    historyToggle.setAttribute('aria-expanded', String(open));
+    if (open) {
+      renderHistoryList();
+      window.setTimeout(() => {
+        if (state.historyOpen) newChatButton.focus();
+      }, 80);
+    }
+  }
+
+  function renderActiveConversation() {
+    conversation.replaceChildren();
+    welcome.hidden = state.messages.length > 0;
+    state.messages.forEach((message) => {
+      const rendered = appendMessage(message.role, message.content, { scroll: false });
+      if (message.role === 'assistant') renderMarkdown(rendered.bubble, message.content);
+    });
+    suggestionBlock.hidden = state.messages.length > 0;
+    scrollToLatest();
+  }
+
+  function startNewConversation() {
+    if (state.sending) return;
+    state.activeConversationId = null;
+    state.messages = [];
+    renderActiveConversation();
+    setHistoryOpen(false);
+    if (state.open) {
+      createLocalSuggestions();
+      generateAISuggestions();
+      if (getAccessToken()) input.focus();
+    }
+  }
+
+  function openConversation(id) {
+    if (state.sending) return;
+    const item = state.conversations.find((conversationItem) => conversationItem.id === id);
+    if (!item) return;
+    cancelSuggestionGeneration();
+    state.activeConversationId = item.id;
+    state.messages = item.messages.map((message) => ({ role: message.role, content: message.content }));
+    renderActiveConversation();
+    setHistoryOpen(false);
+    if (getAccessToken()) input.focus();
+  }
 
   function shuffle(items) {
     const result = items.slice();
@@ -267,6 +485,8 @@
     authForm.hidden = hasToken;
     input.disabled = !hasToken || state.sending;
     sendButton.disabled = !hasToken || state.sending || !input.value.trim();
+    historyToggle.disabled = state.sending;
+    newChatButton.disabled = state.sending;
     statusText.textContent = hasToken ? '本地模型 · 隐私运行' : '需要家庭访问码';
   }
 
@@ -281,9 +501,13 @@
 
     if (open) {
       state.lastFocused = document.activeElement;
-      createLocalSuggestions();
       refreshAuthState();
-      generateAISuggestions();
+      if (!state.messages.length) {
+        createLocalSuggestions();
+        generateAISuggestions();
+      } else {
+        suggestionBlock.hidden = true;
+      }
       scrollToLatest();
       window.setTimeout(() => {
         if (getAccessToken()) input.focus();
@@ -291,6 +515,7 @@
       }, 80);
     } else {
       cancelSuggestionGeneration();
+      setHistoryOpen(false);
       if (state.lastFocused && typeof state.lastFocused.focus === 'function') state.lastFocused.focus();
     }
   }
@@ -522,8 +747,8 @@
     bubble.className = 'aiq-bubble';
     bubble.textContent = text;
     wrapper.appendChild(bubble);
-    body.appendChild(wrapper);
-    scrollToLatest();
+    conversation.appendChild(wrapper);
+    if (options.scroll !== false) scrollToLatest();
     return { wrapper, bubble };
   }
 
@@ -562,10 +787,13 @@
     }
 
     cancelSuggestionGeneration();
+    setHistoryOpen(false);
     suggestionBlock.hidden = true;
+    welcome.hidden = true;
     appendMessage('user', message);
     state.messages.push({ role: 'user', content: message });
-    state.messages = state.messages.slice(-MAX_HISTORY_MESSAGES);
+    state.messages = state.messages.slice(-MAX_CONVERSATION_MESSAGES);
+    saveActiveConversation();
     input.value = '';
     resizeInput();
 
@@ -583,7 +811,7 @@
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream'
         },
-        body: JSON.stringify({ messages: state.messages }),
+        body: JSON.stringify({ messages: state.messages.slice(-MAX_HISTORY_MESSAGES) }),
         signal: state.abortController.signal
       });
 
@@ -624,7 +852,8 @@
       if (!answer.trim()) throw new Error('模型没有返回内容，请再问一次。');
 
       state.messages.push({ role: 'assistant', content: answer });
-      state.messages = state.messages.slice(-MAX_HISTORY_MESSAGES);
+      state.messages = state.messages.slice(-MAX_CONVERSATION_MESSAGES);
+      saveActiveConversation();
     } catch (error) {
       if (error.name === 'AbortError') {
         thinking.wrapper.remove();
@@ -643,10 +872,31 @@
   launcher.addEventListener('click', () => setOpen(true));
   closeButton.addEventListener('click', () => setOpen(false));
   backdrop.addEventListener('click', () => setOpen(false));
+  historyToggle.addEventListener('click', () => setHistoryOpen(!state.historyOpen));
+  historyShade.addEventListener('click', () => setHistoryOpen(false));
+  newChatButton.addEventListener('click', startNewConversation);
+
+  historyList.addEventListener('click', (event) => {
+    const deleteButton = event.target.closest('[data-delete-conversation-id]');
+    if (deleteButton) {
+      const id = deleteButton.dataset.deleteConversationId;
+      const item = state.conversations.find((conversationItem) => conversationItem.id === id);
+      if (!item || !window.confirm(`删除“${item.title}”吗？删除后无法恢复。`)) return;
+      state.conversations = state.conversations.filter((conversationItem) => conversationItem.id !== id);
+      persistConversations();
+      if (state.activeConversationId === id) startNewConversation();
+      else renderHistoryList();
+      return;
+    }
+
+    const openButton = event.target.closest('[data-conversation-id]');
+    if (openButton) openConversation(openButton.dataset.conversationId);
+  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && state.open) {
-      if (state.sending && state.abortController) state.abortController.abort();
+      if (state.historyOpen) setHistoryOpen(false);
+      else if (state.sending && state.abortController) state.abortController.abort();
       else setOpen(false);
     }
   });
@@ -684,5 +934,7 @@
     else accessCodeInput.focus();
   });
 
+  state.conversations = loadConversations();
+  renderHistoryList();
   refreshAuthState();
 })();
