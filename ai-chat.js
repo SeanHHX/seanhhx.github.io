@@ -5,6 +5,7 @@
   const MAX_HISTORY_MESSAGES = 8;
   const SUGGESTION_COUNT_MIN = 5;
   const SUGGESTION_COUNT_MAX = 6;
+  const SUGGESTION_TIMEOUT_MS = 20000;
   const suggestionTopics = [
     ['科学', ['天空为什么是蓝色的？', '恐龙为什么会灭绝？', '月亮为什么会变形状？', '彩虹是怎么形成的？', '植物晚上也会呼吸吗？']],
     ['数学', ['出一道有趣的数学题', '教我一个快速心算的小技巧', '用故事讲讲什么是分数', '给我出一道找规律题', '生活中哪些地方会用到乘法？']],
@@ -26,6 +27,8 @@
     open: false,
     sending: false,
     abortController: null,
+    suggestionAbortController: null,
+    suggestionRequestId: 0,
     lastFocused: null,
     messages: []
   };
@@ -69,7 +72,13 @@
         <div class="aiq-message-avatar" aria-hidden="true">✦</div>
         <div class="aiq-bubble">你好呀！我是运行在家中电脑上的星辰 AI。可以问我学习、生活和科学小问题。</div>
       </div>
-      <div class="aiq-suggestions" aria-label="推荐问题">
+      <div class="aiq-suggestion-block">
+        <div class="aiq-suggestion-header">
+          <span>试试这样问</span>
+          <span class="aiq-suggestion-status" data-aiq-suggestion-status aria-live="polite"></span>
+        </div>
+        <div class="aiq-suggestions" aria-label="推荐问题">
+        </div>
       </div>
       <form class="aiq-auth" data-aiq-auth autocomplete="off">
         <label class="aiq-auth-label" for="aiq-access-code">首次使用请输入家庭访问码</label>
@@ -102,6 +111,8 @@
   const authForm = panel.querySelector('[data-aiq-auth]');
   const accessCodeInput = panel.querySelector('#aiq-access-code');
   const statusText = panel.querySelector('[data-aiq-status]');
+  const suggestionBlock = panel.querySelector('.aiq-suggestion-block');
+  const suggestionStatus = panel.querySelector('[data-aiq-suggestion-status]');
   const suggestions = panel.querySelector('.aiq-suggestions');
 
   function shuffle(items) {
@@ -113,7 +124,17 @@
     return result;
   }
 
-  function createSuggestions() {
+  function renderSuggestions(questions) {
+    suggestions.replaceChildren(...questions.map((question) => {
+      const button = document.createElement('button');
+      button.className = 'aiq-suggestion';
+      button.type = 'button';
+      button.textContent = question;
+      return button;
+    }));
+  }
+
+  function createLocalSuggestions() {
     const count = SUGGESTION_COUNT_MIN + Math.floor(
       Math.random() * (SUGGESTION_COUNT_MAX - SUGGESTION_COUNT_MIN + 1)
     );
@@ -122,15 +143,109 @@
       topicQuestions[Math.floor(Math.random() * topicQuestions.length)]
     ));
 
-    suggestions.replaceChildren(...questions.map((question) => {
-      const button = document.createElement('button');
-      button.className = 'aiq-suggestion';
-      button.type = 'button';
-      button.textContent = question;
-      return button;
-    }));
-    suggestions.hidden = false;
-    body.appendChild(suggestions);
+    renderSuggestions(questions);
+    suggestionStatus.textContent = '本地推荐';
+    suggestionBlock.hidden = false;
+    body.appendChild(suggestionBlock);
+  }
+
+  function cancelSuggestionGeneration() {
+    state.suggestionRequestId += 1;
+    if (state.suggestionAbortController) state.suggestionAbortController.abort();
+    state.suggestionAbortController = null;
+    suggestionBlock.removeAttribute('aria-busy');
+  }
+
+  function parseGeneratedSuggestions(answer) {
+    const match = String(answer || '').match(/\[[\s\S]*\]/);
+    if (!match) return null;
+
+    try {
+      const parsed = JSON.parse(match[0]);
+      if (!Array.isArray(parsed) || parsed.length < SUGGESTION_COUNT_MIN || parsed.length > SUGGESTION_COUNT_MAX) return null;
+      const questions = parsed.map((question) => String(question).trim());
+      const valid = questions.every((question) => (
+        question.length >= 4 && question.length <= 40 && !/[\r\n]/.test(question)
+      ));
+      if (!valid || new Set(questions).size !== questions.length) return null;
+      return questions;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function generateAISuggestions() {
+    const token = getAccessToken();
+    if (!token || !state.open) return;
+
+    cancelSuggestionGeneration();
+    const requestId = state.suggestionRequestId;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), SUGGESTION_TIMEOUT_MS);
+    state.suggestionAbortController = controller;
+    suggestionStatus.textContent = 'AI 正在更新…';
+    suggestionBlock.setAttribute('aria-busy', 'true');
+
+    const referenceQuestions = suggestionTopics.flatMap(([, questions]) => questions).join('；');
+    const prompt = [
+      '请参考下面的儿童学习题库，生成 5 或 6 个新的推荐问题。',
+      '要求：适合小学生，主题尽量多样，表达简短自然，不索取个人信息，不包含危险操作。',
+      '不要回答问题，只返回 JSON 字符串数组，不要使用 Markdown。',
+      `参考题库：${referenceQuestions}`
+    ].join('\n');
+
+    try {
+      const response = await fetch(`${apiBase}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream'
+        },
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
+        signal: controller.signal
+      });
+
+      if (response.status === 401) {
+        setAccessToken('');
+        refreshAuthState();
+      }
+      if (!response.ok || !response.body) throw new Error('suggestions unavailable');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let answer = '';
+      const handleEvent = (data) => {
+        if (!data || data === '[DONE]') return;
+        const payload = JSON.parse(data);
+        if (payload.error) throw new Error(payload.error);
+        if (payload.delta) answer += payload.delta;
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+        buffer = parseSSEBuffer(buffer.replace(/\r\n/g, '\n'), handleEvent);
+        if (done) break;
+      }
+      if (buffer.trim()) parseSSEBuffer(`${buffer}\n\n`, handleEvent);
+
+      const generated = parseGeneratedSuggestions(answer);
+      if (!generated) throw new Error('invalid suggestions');
+      if (requestId !== state.suggestionRequestId || !state.open) return;
+      renderSuggestions(generated);
+      suggestionStatus.textContent = 'AI 推荐';
+      scrollToLatest();
+    } catch (_) {
+      if (requestId === state.suggestionRequestId && state.open) suggestionStatus.textContent = '本地推荐';
+    } finally {
+      window.clearTimeout(timeoutId);
+      if (requestId === state.suggestionRequestId) {
+        state.suggestionAbortController = null;
+        suggestionBlock.removeAttribute('aria-busy');
+      }
+    }
   }
 
   function getAccessToken() {
@@ -166,14 +281,16 @@
 
     if (open) {
       state.lastFocused = document.activeElement;
-      createSuggestions();
+      createLocalSuggestions();
       refreshAuthState();
+      generateAISuggestions();
       scrollToLatest();
       window.setTimeout(() => {
         if (getAccessToken()) input.focus();
         else accessCodeInput.focus();
       }, 80);
     } else {
+      cancelSuggestionGeneration();
       if (state.lastFocused && typeof state.lastFocused.focus === 'function') state.lastFocused.focus();
     }
   }
@@ -394,7 +511,8 @@
       return;
     }
 
-    suggestions.hidden = true;
+    cancelSuggestionGeneration();
+    suggestionBlock.hidden = true;
     appendMessage('user', message);
     state.messages.push({ role: 'user', content: message });
     state.messages = state.messages.slice(-MAX_HISTORY_MESSAGES);
@@ -490,6 +608,7 @@
     setAccessToken(token);
     accessCodeInput.value = '';
     refreshAuthState();
+    generateAISuggestions();
     input.focus();
   });
 
