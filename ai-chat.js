@@ -300,7 +300,7 @@
   }
 
   function appendInlineMarkdown(parent, source) {
-    const pattern = /(`[^`\n]+`|\*(?![\s*])(?:[^*\n]|\*\*[^*\n]+\*\*)+\*|\*\*[^*\n]+(?:\*(?!\*)[^*\n]*)*\*\*|__[^_\n]+(?:_(?!_)[^_\n]*)*__|~~[^~\n]+~~|\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|_[^_\n]+_)/g;
+    const pattern = /(`[^`\n]+`|[A-Za-z0-9)\]]\s*\*\s*(?=[A-Za-z0-9(\[])|\*(?![\s*])(?:[^*\n]|\*\*[^*\n]+\*\*)+\*|\*\*[^*\n]+(?:\*(?!\*)[^*\n]*)*\*\*|__[^_\n]+(?:_(?!_)[^_\n]*)*__|~~[^~\n]+~~|\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|_[^_\n]+_)/g;
     let cursor = 0;
     let match;
 
@@ -311,7 +311,11 @@
       let element;
       let content;
 
-      if (token.startsWith('**') || token.startsWith('__')) {
+      if (/^[A-Za-z0-9)\]]\s*\*\s*$/.test(token)) {
+        parent.appendChild(document.createTextNode(token.replace(/\s*\*\s*$/, ' × ')));
+        cursor = pattern.lastIndex;
+        continue;
+      } else if (token.startsWith('**') || token.startsWith('__')) {
         element = document.createElement('strong');
         content = token.slice(2, -2);
       } else if (token.startsWith('~~')) {
@@ -348,6 +352,7 @@
     textNodes.forEach((node) => {
       if (node.parentElement.closest('code, pre, .katex')) return;
       node.nodeValue = node.nodeValue
+        .replace(/([A-Za-z0-9)\]])\s*\*\s*(?=[A-Za-z0-9(\[])/g, '$1 × ')
         .replace(/^\*{1,2}(?=\s+)/, '')
         .replace(/\*{1,2}(?=\s*(?:[，。！？、；：,.!?;:]|$))/g, '');
     });
