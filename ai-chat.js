@@ -300,7 +300,7 @@
   }
 
   function appendInlineMarkdown(parent, source) {
-    const pattern = /(`[^`\n]+`|\*\*[^*\n]+(?:\*(?!\*)[^*\n]*)*\*\*|__[^_\n]+(?:_(?!_)[^_\n]*)*__|~~[^~\n]+~~|\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|\*[^*\n]+\*|_[^_\n]+_)/g;
+    const pattern = /(`[^`\n]+`|\*(?![\s*])(?:[^*\n]|\*\*[^*\n]+\*\*)+\*|\*\*[^*\n]+(?:\*(?!\*)[^*\n]*)*\*\*|__[^_\n]+(?:_(?!_)[^_\n]*)*__|~~[^~\n]+~~|\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|_[^_\n]+_)/g;
     let cursor = 0;
     let match;
 
@@ -332,12 +332,25 @@
         content = token.slice(1, -1);
       }
 
-      element.textContent = content;
+      if (element.matches('strong, em, del')) appendInlineMarkdown(element, content);
+      else element.textContent = content;
       parent.appendChild(element);
       cursor = pattern.lastIndex;
     }
 
     if (cursor < source.length) parent.appendChild(document.createTextNode(source.slice(cursor)));
+  }
+
+  function cleanupOrphanMarkdownMarkers(container) {
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    textNodes.forEach((node) => {
+      if (node.parentElement.closest('code, pre, .katex')) return;
+      node.nodeValue = node.nodeValue
+        .replace(/^\*{1,2}(?=\s+)/, '')
+        .replace(/\*{1,2}(?=\s*(?:[，。！？、；：,.!?;:]|$))/g, '');
+    });
   }
 
   function renderLatex(container) {
@@ -482,6 +495,7 @@
     flushParagraph();
     container.classList.add('aiq-markdown');
     container.replaceChildren(fragment);
+    cleanupOrphanMarkdownMarkers(container);
     renderLatex(container);
   }
 
