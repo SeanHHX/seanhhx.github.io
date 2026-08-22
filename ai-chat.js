@@ -3,6 +3,16 @@
 
   const STORAGE_KEY = 'star_ai_access_token_v1';
   const MAX_HISTORY_MESSAGES = 8;
+  const SUGGESTION_COUNT_MIN = 5;
+  const SUGGESTION_COUNT_MAX = 6;
+  const suggestionTopics = [
+    ['科学', ['天空为什么是蓝色的？', '恐龙为什么会灭绝？', '月亮为什么会变形状？', '彩虹是怎么形成的？', '植物晚上也会呼吸吗？']],
+    ['数学', ['出一道有趣的数学题', '教我一个快速心算的小技巧', '用故事讲讲什么是分数', '给我出一道找规律题', '生活中哪些地方会用到乘法？']],
+    ['语文', ['讲一个有趣的成语故事', '教我猜一个字谜', '陪我用三个词编个小故事', '推荐一句适合小朋友的古诗', '怎样把一段话写得更生动？']],
+    ['英语', ['教我一句日常英语', '陪我练习三句英语对话', '教我五个动物的英文单词', '用简单英语介绍我的家人', '出一道英语单词小游戏']],
+    ['探索', ['给我一个在家能做的小实验', '今天可以观察什么大自然现象？', '讲一个中国传统节日的故事', '为什么要保护小动物？', '教我一个安全又有趣的手工']],
+    ['成长', ['怎样更快地整理好书包？', '紧张的时候怎样让自己放松？', '怎样制定今天的学习计划？', '和朋友闹矛盾了怎么办？', '给我一个今天可以完成的小挑战']]
+  ];
   const localHostnames = new Set(['localhost', '127.0.0.1']);
   const config = window.AI_CHAT_CONFIG || {};
   const apiBase = String(
@@ -60,9 +70,6 @@
         <div class="aiq-bubble">你好呀！我是运行在家中电脑上的星辰 AI。可以问我学习、生活和科学小问题。</div>
       </div>
       <div class="aiq-suggestions" aria-label="推荐问题">
-        <button class="aiq-suggestion" type="button">为什么天空是蓝色？</button>
-        <button class="aiq-suggestion" type="button">出一道有趣的数学题</button>
-        <button class="aiq-suggestion" type="button">教我一句日常英语</button>
       </div>
       <form class="aiq-auth" data-aiq-auth autocomplete="off">
         <label class="aiq-auth-label" for="aiq-access-code">首次使用请输入家庭访问码</label>
@@ -97,6 +104,35 @@
   const statusText = panel.querySelector('[data-aiq-status]');
   const suggestions = panel.querySelector('.aiq-suggestions');
 
+  function shuffle(items) {
+    const result = items.slice();
+    for (let index = result.length - 1; index > 0; index -= 1) {
+      const target = Math.floor(Math.random() * (index + 1));
+      [result[index], result[target]] = [result[target], result[index]];
+    }
+    return result;
+  }
+
+  function createSuggestions() {
+    const count = SUGGESTION_COUNT_MIN + Math.floor(
+      Math.random() * (SUGGESTION_COUNT_MAX - SUGGESTION_COUNT_MIN + 1)
+    );
+    const topics = shuffle(suggestionTopics);
+    const questions = topics.slice(0, count).map(([, topicQuestions]) => (
+      topicQuestions[Math.floor(Math.random() * topicQuestions.length)]
+    ));
+
+    suggestions.replaceChildren(...questions.map((question) => {
+      const button = document.createElement('button');
+      button.className = 'aiq-suggestion';
+      button.type = 'button';
+      button.textContent = question;
+      return button;
+    }));
+    suggestions.hidden = false;
+    body.appendChild(suggestions);
+  }
+
   function getAccessToken() {
     try { return window.localStorage.getItem(STORAGE_KEY) || ''; }
     catch (_) { return ''; }
@@ -130,7 +166,9 @@
 
     if (open) {
       state.lastFocused = document.activeElement;
+      createSuggestions();
       refreshAuthState();
+      scrollToLatest();
       window.setTimeout(() => {
         if (getAccessToken()) input.focus();
         else accessCodeInput.focus();
@@ -468,13 +506,13 @@
     sendMessage(input.value.trim());
   });
 
-  panel.querySelectorAll('.aiq-suggestion').forEach((button) => {
-    button.addEventListener('click', () => {
-      input.value = button.textContent;
-      resizeInput();
-      if (getAccessToken()) sendMessage(input.value.trim());
-      else accessCodeInput.focus();
-    });
+  suggestions.addEventListener('click', (event) => {
+    const button = event.target.closest('.aiq-suggestion');
+    if (!button) return;
+    input.value = button.textContent;
+    resizeInput();
+    if (getAccessToken()) sendMessage(input.value.trim());
+    else accessCodeInput.focus();
   });
 
   refreshAuthState();
