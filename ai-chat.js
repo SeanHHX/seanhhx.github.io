@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = 'star_ai_access_token_v1';
   const CHAT_HISTORY_STORAGE_KEY = 'star_ai_chat_history_v1';
+  const CHAT_SYNC_STORAGE_KEY = 'star_ai_chat_sync_v1';
   const MAX_HISTORY_MESSAGES = 8;
   const MAX_CONVERSATIONS = 20;
   const MAX_CONVERSATION_MESSAGES = 40;
@@ -36,7 +37,10 @@
     messages: [],
     conversations: [],
     activeConversationId: null,
-    historyOpen: false
+    historyOpen: false,
+    syncMeta: null,
+    syncInFlight: false,
+    syncTimer: null
   };
 
   const host = document.querySelector('[data-ai-chat-launcher]');
@@ -84,7 +88,7 @@
       <div class="aiq-history-header">
         <div>
           <div class="aiq-history-title">对话历史</div>
-          <div class="aiq-history-subtitle">保存在当前浏览器</div>
+          <div class="aiq-history-subtitle" data-aiq-sync-status>仅保存在当前浏览器</div>
         </div>
         <button class="aiq-new-chat" type="button">
           <span aria-hidden="true">＋</span> 新对话
@@ -148,33 +152,58 @@
   const suggestionBlock = panel.querySelector('.aiq-suggestion-block');
   const suggestionStatus = panel.querySelector('[data-aiq-suggestion-status]');
   const suggestions = panel.querySelector('.aiq-suggestions');
+  const syncStatus = panel.querySelector('[data-aiq-sync-status]');
+
+  function stableMessageId(conversationId, index, message) {
+    const source = `${conversationId}|${index}|${message.role}|${message.content}`;
+    let hash = 2166136261;
+    for (let position = 0; position < source.length; position += 1) {
+      hash ^= source.charCodeAt(position);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `legacy-${(hash >>> 0).toString(36)}-${index}`;
+  }
+
+  function normalizeConversation(item) {
+    if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !Array.isArray(item.messages)) return null;
+    const id = item.id.trim().slice(0, 128);
+    if (!id) return null;
+    const createdAt = Number.isFinite(item.createdAt) && item.createdAt > 0 ? item.createdAt : Date.now();
+    const messages = item.messages
+      .filter((message) => (
+        message &&
+        (message.role === 'user' || message.role === 'assistant') &&
+        typeof message.content === 'string' &&
+        message.content.trim()
+      ))
+      .slice(-MAX_CONVERSATION_MESSAGES)
+      .map((message, index) => ({
+        id: typeof message.id === 'string' && message.id.trim()
+          ? message.id.trim().slice(0, 128)
+          : stableMessageId(id, index, message),
+        role: message.role,
+        content: message.content.slice(0, 6000),
+        createdAt: Number.isFinite(message.createdAt) && message.createdAt > 0
+          ? message.createdAt
+          : createdAt + index
+      }));
+    if (!messages.length) return null;
+    const updatedAt = Number.isFinite(item.updatedAt) && item.updatedAt > 0 ? item.updatedAt : createdAt;
+    return {
+      id,
+      title: typeof item.title === 'string' && item.title.trim() ? item.title.trim().slice(0, 40) : '学习对话',
+      createdAt,
+      updatedAt,
+      messages
+    };
+  }
 
   function loadConversations() {
     try {
       const parsed = JSON.parse(window.localStorage.getItem(CHAT_HISTORY_STORAGE_KEY) || '[]');
       if (!Array.isArray(parsed)) return [];
-      return parsed.map((item) => {
-        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !Array.isArray(item.messages)) return null;
-        const messages = item.messages
-          .filter((message) => (
-            message &&
-            (message.role === 'user' || message.role === 'assistant') &&
-            typeof message.content === 'string' &&
-            message.content.trim()
-          ))
-          .slice(-MAX_CONVERSATION_MESSAGES)
-          .map((message) => ({ role: message.role, content: message.content.slice(0, 6000) }));
-        if (!messages.length) return null;
-        const createdAt = Number.isFinite(item.createdAt) ? item.createdAt : Date.now();
-        const updatedAt = Number.isFinite(item.updatedAt) ? item.updatedAt : createdAt;
-        return {
-          id: item.id,
-          title: typeof item.title === 'string' && item.title.trim() ? item.title.trim().slice(0, 40) : '学习对话',
-          createdAt,
-          updatedAt,
-          messages
-        };
-      }).filter(Boolean).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_CONVERSATIONS);
+      return parsed.map(normalizeConversation).filter(Boolean)
+        .sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_CONVERSATIONS);
     } catch (_) {
       return [];
     }
@@ -205,6 +234,10 @@
     return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
 
+  function createMessage(role, content) {
+    return { id: createConversationId(), role, content, createdAt: Date.now() };
+  }
+
   function conversationTitle(message) {
     const compact = String(message || '').replace(/\s+/g, ' ').trim();
     return compact.length > 24 ? `${compact.slice(0, 24)}…` : compact || '学习对话';
@@ -227,10 +260,14 @@
     }
     item.updatedAt = now;
     item.messages = state.messages.slice(-MAX_CONVERSATION_MESSAGES).map((message) => ({
+      id: message.id,
       role: message.role,
-      content: message.content
+      content: message.content,
+      createdAt: message.createdAt
     }));
     persistConversations();
+    markConversationDirty(item.id, item.updatedAt);
+    scheduleHistorySync();
     renderHistoryList();
   }
 
@@ -291,6 +328,7 @@
     historyToggle.setAttribute('aria-expanded', String(open));
     if (open) {
       renderHistoryList();
+      syncHistory();
       window.setTimeout(() => {
         if (state.historyOpen) newChatButton.focus();
       }, 80);
@@ -327,7 +365,7 @@
     if (!item) return;
     cancelSuggestionGeneration();
     state.activeConversationId = item.id;
-    state.messages = item.messages.map((message) => ({ role: message.role, content: message.content }));
+    state.messages = item.messages.map((message) => ({ ...message }));
     renderActiveConversation();
     setHistoryOpen(false);
     if (getAccessToken()) input.focus();
@@ -480,6 +518,169 @@
     }
   }
 
+  function persistSyncMeta() {
+    if (!state.syncMeta) return;
+    try {
+      window.localStorage.setItem(CHAT_SYNC_STORAGE_KEY, JSON.stringify(state.syncMeta));
+    } catch (_) {
+      // 同步元数据写入失败不影响本机历史继续使用。
+    }
+  }
+
+  function loadSyncMeta() {
+    let parsed = null;
+    try { parsed = JSON.parse(window.localStorage.getItem(CHAT_SYNC_STORAGE_KEY) || 'null'); }
+    catch (_) { parsed = null; }
+
+    const isExisting = parsed && typeof parsed === 'object' && typeof parsed.deviceId === 'string';
+    const meta = {
+      deviceId: isExisting ? parsed.deviceId : `device-${createConversationId()}`,
+      lastRevision: isExisting && Number.isFinite(parsed.lastRevision) && parsed.lastRevision >= 0 ? parsed.lastRevision : 0,
+      dirtyConversations: isExisting && parsed.dirtyConversations && typeof parsed.dirtyConversations === 'object'
+        ? parsed.dirtyConversations : {},
+      tombstones: isExisting && parsed.tombstones && typeof parsed.tombstones === 'object' ? parsed.tombstones : {},
+      dirtyTombstones: isExisting && parsed.dirtyTombstones && typeof parsed.dirtyTombstones === 'object'
+        ? parsed.dirtyTombstones : {}
+    };
+    if (!isExisting) {
+      state.conversations.forEach((item) => { meta.dirtyConversations[item.id] = item.updatedAt; });
+    }
+    return meta;
+  }
+
+  function markConversationDirty(id, updatedAt) {
+    if (!state.syncMeta) return;
+    delete state.syncMeta.tombstones[id];
+    delete state.syncMeta.dirtyTombstones[id];
+    state.syncMeta.dirtyConversations[id] = updatedAt;
+    persistSyncMeta();
+  }
+
+  function markConversationDeleted(id) {
+    if (!state.syncMeta) return;
+    const deletedAt = Date.now();
+    delete state.syncMeta.dirtyConversations[id];
+    state.syncMeta.tombstones[id] = deletedAt;
+    state.syncMeta.dirtyTombstones[id] = deletedAt;
+    persistSyncMeta();
+    scheduleHistorySync();
+  }
+
+  function setSyncStatus(message) {
+    syncStatus.textContent = message;
+  }
+
+  function scheduleHistorySync(delay = 800) {
+    if (state.syncTimer) window.clearTimeout(state.syncTimer);
+    state.syncTimer = window.setTimeout(() => {
+      state.syncTimer = null;
+      syncHistory();
+    }, delay);
+  }
+
+  async function syncHistory() {
+    const token = getAccessToken();
+    if (!state.syncMeta || !token || state.syncInFlight) {
+      if (!token) setSyncStatus('仅保存在当前浏览器');
+      return;
+    }
+    if ('onLine' in navigator && !navigator.onLine) {
+      setSyncStatus('离线，本机记录已保存');
+      return;
+    }
+
+    const sentConversations = { ...state.syncMeta.dirtyConversations };
+    const sentTombstones = Object.fromEntries(
+      Object.entries(state.syncMeta.dirtyTombstones).slice(0, MAX_CONVERSATIONS)
+    );
+    const conversationsToSend = Object.keys(sentConversations)
+      .map((id) => state.conversations.find((item) => item.id === id))
+      .filter(Boolean);
+    const tombstonesToSend = Object.entries(sentTombstones)
+      .map(([id, deletedAt]) => ({ id, deletedAt }));
+
+    state.syncInFlight = true;
+    let syncSucceeded = false;
+    setSyncStatus('正在跨设备同步…');
+    try {
+      const response = await fetch(`${apiBase}/api/history/sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          deviceId: state.syncMeta.deviceId,
+          since: state.syncMeta.lastRevision,
+          conversations: conversationsToSend,
+          tombstones: tombstonesToSend
+        })
+      });
+
+      if (response.status === 401) {
+        setAccessToken('');
+        refreshAuthState();
+        throw new Error('unauthorized');
+      }
+      if (!response.ok) throw new Error(`sync failed: ${response.status}`);
+      const result = await response.json();
+      if (!result || !Number.isFinite(result.revision) || !Array.isArray(result.conversations) || !Array.isArray(result.tombstones)) {
+        throw new Error('invalid sync response');
+      }
+
+      Object.entries(sentConversations).forEach(([id, version]) => {
+        if (state.syncMeta.dirtyConversations[id] === version) delete state.syncMeta.dirtyConversations[id];
+      });
+      Object.entries(sentTombstones).forEach(([id, version]) => {
+        if (state.syncMeta.dirtyTombstones[id] === version) delete state.syncMeta.dirtyTombstones[id];
+      });
+
+      let activeChanged = false;
+      result.tombstones.forEach((item) => {
+        if (!item || typeof item.id !== 'string' || !Number.isFinite(item.deletedAt)) return;
+        state.syncMeta.tombstones[item.id] = Math.max(state.syncMeta.tombstones[item.id] || 0, item.deletedAt);
+        delete state.syncMeta.dirtyConversations[item.id];
+        state.conversations = state.conversations.filter((conversationItem) => conversationItem.id !== item.id);
+        if (state.activeConversationId === item.id) {
+          state.activeConversationId = null;
+          state.messages = [];
+          activeChanged = true;
+        }
+      });
+
+      result.conversations.forEach((remoteItem) => {
+        const item = normalizeConversation(remoteItem);
+        if (!item || state.syncMeta.tombstones[item.id]) return;
+        const hasNewerLocalChange = state.syncMeta.dirtyConversations[item.id] !== undefined;
+        if (hasNewerLocalChange) return;
+        const index = state.conversations.findIndex((conversationItem) => conversationItem.id === item.id);
+        if (index >= 0) state.conversations[index] = item;
+        else state.conversations.push(item);
+        if (state.activeConversationId === item.id) {
+          state.messages = item.messages.map((message) => ({ ...message }));
+          activeChanged = true;
+        }
+      });
+
+      state.syncMeta.lastRevision = result.revision;
+      persistConversations();
+      persistSyncMeta();
+      renderHistoryList();
+      if (activeChanged) renderActiveConversation();
+      setSyncStatus('已跨设备同步');
+      syncSucceeded = true;
+    } catch (_) {
+      setSyncStatus(getAccessToken() ? '暂未同步，本机记录已保存' : '仅保存在当前浏览器');
+    } finally {
+      state.syncInFlight = false;
+      if (syncSucceeded && state.syncMeta && (
+        Object.keys(state.syncMeta.dirtyConversations).length ||
+        Object.keys(state.syncMeta.dirtyTombstones).length
+      )) scheduleHistorySync(2500);
+    }
+  }
+
   function refreshAuthState() {
     const hasToken = Boolean(getAccessToken());
     authForm.hidden = hasToken;
@@ -488,6 +689,7 @@
     historyToggle.disabled = state.sending;
     newChatButton.disabled = state.sending;
     statusText.textContent = hasToken ? '本地模型 · 隐私运行' : '需要家庭访问码';
+    if (!hasToken) setSyncStatus('仅保存在当前浏览器');
   }
 
   function setOpen(open) {
@@ -502,6 +704,7 @@
     if (open) {
       state.lastFocused = document.activeElement;
       refreshAuthState();
+      syncHistory();
       if (!state.messages.length) {
         createLocalSuggestions();
         generateAISuggestions();
@@ -791,7 +994,7 @@
     suggestionBlock.hidden = true;
     welcome.hidden = true;
     appendMessage('user', message);
-    state.messages.push({ role: 'user', content: message });
+    state.messages.push(createMessage('user', message));
     state.messages = state.messages.slice(-MAX_CONVERSATION_MESSAGES);
     saveActiveConversation();
     input.value = '';
@@ -811,7 +1014,12 @@
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream'
         },
-        body: JSON.stringify({ messages: state.messages.slice(-MAX_HISTORY_MESSAGES) }),
+        body: JSON.stringify({
+          messages: state.messages.slice(-MAX_HISTORY_MESSAGES).map((item) => ({
+            role: item.role,
+            content: item.content
+          }))
+        }),
         signal: state.abortController.signal
       });
 
@@ -851,7 +1059,7 @@
       if (buffer.trim()) parseSSEBuffer(`${buffer}\n\n`, handleEvent);
       if (!answer.trim()) throw new Error('模型没有返回内容，请再问一次。');
 
-      state.messages.push({ role: 'assistant', content: answer });
+      state.messages.push(createMessage('assistant', answer));
       state.messages = state.messages.slice(-MAX_CONVERSATION_MESSAGES);
       saveActiveConversation();
     } catch (error) {
@@ -884,6 +1092,7 @@
       if (!item || !window.confirm(`删除“${item.title}”吗？删除后无法恢复。`)) return;
       state.conversations = state.conversations.filter((conversationItem) => conversationItem.id !== id);
       persistConversations();
+      markConversationDeleted(id);
       if (state.activeConversationId === id) startNewConversation();
       else renderHistoryList();
       return;
@@ -909,6 +1118,7 @@
     accessCodeInput.value = '';
     refreshAuthState();
     generateAISuggestions();
+    syncHistory();
     input.focus();
   });
 
@@ -934,7 +1144,13 @@
     else accessCodeInput.focus();
   });
 
+  window.addEventListener('online', () => syncHistory());
+
   state.conversations = loadConversations();
+  state.syncMeta = loadSyncMeta();
+  persistConversations();
+  persistSyncMeta();
   renderHistoryList();
   refreshAuthState();
+  if (getAccessToken()) scheduleHistorySync(200);
 })();
