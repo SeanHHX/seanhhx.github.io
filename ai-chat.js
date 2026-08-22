@@ -340,6 +340,36 @@
     if (cursor < source.length) parent.appendChild(document.createTextNode(source.slice(cursor)));
   }
 
+  function renderLatex(container) {
+    if (typeof window.renderMathInElement !== 'function') return;
+    try {
+      window.renderMathInElement(container, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '\\[', right: '\\]', display: true },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false,
+        strict: 'ignore',
+        trust: false
+      });
+
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      textNodes.forEach((node) => {
+        if (node.parentElement.closest('.katex, code, pre')) return;
+        let previous = node.previousSibling;
+        while (previous && previous.nodeType === Node.TEXT_NODE && !previous.nodeValue.trim()) previous = previous.previousSibling;
+        const followsMath = previous && previous.nodeType === Node.ELEMENT_NODE && previous.querySelector('.katex');
+        if (followsMath) node.nodeValue = node.nodeValue.replace(/^\$(?=\s*(?:[，。！？、；：,.!?;:]|$))/, '');
+      });
+    } catch (_) {
+      // 公式不完整或资源加载失败时保留原始文本，避免影响整段回答。
+    }
+  }
+
   function renderMarkdown(container, markdown) {
     const fragment = document.createDocumentFragment();
     const lines = String(markdown || '').replace(/\r\n?/g, '\n').split('\n');
@@ -452,6 +482,7 @@
     flushParagraph();
     container.classList.add('aiq-markdown');
     container.replaceChildren(fragment);
+    renderLatex(container);
   }
 
   function appendMessage(role, text, options = {}) {

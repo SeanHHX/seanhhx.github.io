@@ -291,6 +291,16 @@
 }
 .aiq-markdown pre code { padding: 0; color: #303958; background: transparent; }
 .aiq-markdown a { color: #315fdb; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.aiq-markdown .katex { color: inherit; font-size: 1.05em; }
+.aiq-markdown .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: .65em 0;
+  padding: 2px 0 5px;
+  -webkit-overflow-scrolling: touch;
+}
+.aiq-markdown .katex-display > .katex { white-space: nowrap; }
 
 .aiq-message[data-role="user"] .aiq-bubble {
   border-color: transparent;
